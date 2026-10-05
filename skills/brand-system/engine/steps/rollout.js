@@ -147,7 +147,7 @@ function ico(list) {
   if (!only) for (const [rel, text] of Object.entries(texts)) { S.put(rel, text); others++; }
   // files: every file of the kit, so that the check can tell one that is left from an earlier build
   if (!only) S.save('rollout', { comment: 'Written by the rollout step: the upload kit as the page lists it, place by place.', groups, files: [...svgs.map(j => j.out), ...jobs.map(j => j.out), ...icos.map(i => i.out), ...Object.keys(texts)].sort() });
-  if (errors.length) throw new Error('could not load: ' + [...new Set(errors)].join(', '));
+  if (errors.length) throw new Error('could not load: ' + [...new Set(errors)].join(', ') + (errors.some(u => /^file:/.test(u) && S.deep(decodeURIComponent(new URL(u).pathname).replace(/^\//, ''))) ? '. ' + S.DEEP : ''));
   if (tooNear.length) throw new Error('a line of the line art runs too near a logo or words in: ' + tooNear.join(', ') + '. Draw the mark larger behind it ("scale" in the mark\'s settings) or move its inside point');
   for (const s of shrunk) console.log(s);
   console.log(`${todo.length + svgs.filter(j => j.out.includes(only)).length} pictures${only ? '' : `, ${others} other files`} -> ${path.join(OUT, 'rollout')}`);

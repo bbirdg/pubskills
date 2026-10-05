@@ -233,7 +233,7 @@ const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, 
           const s = await page.evaluate(() => ({ showing: [...document.querySelectorAll('main > section[data-view]')].filter(v => !v.hidden).map(v => v.id), over: document.documentElement.scrollWidth - document.documentElement.clientWidth, broken: [...document.querySelectorAll('main > section:not([hidden]) img')].filter(i => i.complete && !i.naturalWidth).map(i => i.getAttribute('src')) }));
           if (s.showing.length !== 1 || s.showing[0] !== id) bad.push(`${name}, ${id}: the views showing are ${s.showing.join(', ') || 'none'}`);
           if (s.over > 0) bad.push(`${name}, ${id}: the page scrolls sideways by ${s.over} px`);
-          if (s.broken.length) bad.push(`${name}, ${id}: pictures that did not load: ${few(s.broken, 3)}`);
+          if (s.broken.length) bad.push(`${name}, ${id}: pictures that did not load: ${few(s.broken, 3)}${s.broken.some(f => S.deep(path.join(OUT, decodeURIComponent(f)))) ? '. ' + S.DEEP : ''}`);
         }
         const lost = await page.evaluate(async () => { await document.fonts.ready; return [...document.fonts].filter(f => f.status === 'error').map(f => `${f.family} ${f.weight}`); });
         if (lost.length) bad.push(`${name}: fonts that did not load: ${few(lost, 4)}`);

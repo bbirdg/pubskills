@@ -114,6 +114,8 @@ function init(args) {
     fs.writeFileSync(f, fs.readFileSync(path.join(HERE, '..', 'templates', from), 'utf8').replace(/\{\{name\}\}/g, () => shown).replace(/\{\{date\}\}/g, new Date().toISOString().slice(0, 10)));
     made.push(to);
   }
+  // the deepest files lie about 130 characters below the brand folder, and Windows stops many programs at 260
+  if (WIN && root.length > 120) say(`note: this folder's path is ${root.length} characters long. On Windows the browser that draws the pictures cannot open a file whose whole path is over 260, and the files made here lie up to 130 characters deeper: a folder nearer the top of the drive is safer`);
   say(`${root}\n  brand/     the settings (brand.json), the mark (mark.svg) and the notes: the only place to change things\n  concept/   what you start from: the logo as it is, references\n  options/   choices laid side by side for a decision, removed once it is made\n  final/     everything the engine makes\n${made.length ? 'written: ' + made.join(', ') : 'nothing was overwritten'}`);
   return 0;
 }

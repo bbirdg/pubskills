@@ -158,12 +158,17 @@ function build(argv) {
   const put = (rel, data) => { const f = path.resolve(OUT, rel); if (!inside(OUT, f)) throw new Error(`"${rel}" would be written outside ${OUT}: a name in the settings holds ".." or a full path`); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, data); };
   // a file of the brand's own that the engine runs (a kind of mark, a motion, more characters) must be in the brand folder
   const own = (file, what) => { const f = path.resolve(dir, 'brand', file); if (!inside(dir, f)) throw new Error(`${what} names the file "${file}", which is outside the brand folder. The engine only runs code that is inside it`); if (!fs.existsSync(f)) throw new Error(`${what} names the file "${file}", which is not in the brand folder's brand/`); return f; };
+  // On Windows many programs cannot open a file whose whole path is longer than 260 characters, and the browser
+  // that draws the pictures is one of them. The engine writes such a file without trouble, so the fault shows
+  // late, as a picture that will not load: this says why
+  const deep = file => process.platform === 'win32' && path.resolve(file).length >= 259;
+  const DEEP = 'Its path is longer than the 260 characters that Windows lets a browser open: move the brand folder nearer the top of the drive, or give it a shorter name';
   const xml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
   let count = 0;
   const S = {
     args, dir, OUT, BUILD, brand: B, INK, WHITE, ACCENTS, NEUTRALS, PAPER, SEMANTIC, r, stopsSvg, pathData, FONTS, font, outline, glyphs, svgDoc, lockupLayout, lockups,
-    contrast: brand.contrast, SIZE, WORD_TRACK, read, save, put, own, xml, inside, uid: () => count++,
+    contrast: brand.contrast, SIZE, WORD_TRACK, read, save, put, own, xml, inside, deep, DEEP, uid: () => count++,
     // no line of a background may come nearer to a logo, to words or to a clear area than this share of the picture's width
     CLEARANCE: 0.02,
     get CAP() { return cap(); },
