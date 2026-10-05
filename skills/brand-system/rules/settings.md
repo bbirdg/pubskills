@@ -14,8 +14,8 @@ One file tells the engine everything. A key that is left out takes its default, 
 The one thing with no default is the font the name is set in. Give `type.wordmark.font` a font file, as here, or
 give the brand a `type.family` and run the fonts step first.
 
-`example/brand/brand.json` is a full one. The engine reads the file fresh on every run and says what is wrong
-with it in plain words. Unknown keys are ignored, so a `"comment"` is fine anywhere.
+A full one is at the end of this page. The engine reads the file fresh on every run and says what is wrong with
+it in plain words. Unknown keys are ignored, so a `"comment"` is fine anywhere.
 
 ## The brand
 
@@ -158,3 +158,95 @@ somewhere else, and nothing in `final/` is touched. Both can be written with a s
 - `BRAND_SYSTEM_DEBUG=1`: makes a step that fails show its whole error, not one line.
 - `run check <folder> --only=page` tests one thing, and `--skip=motion,page` leaves things out. The names are
   `logos`, `colour`, `rollout`, `art`, `items`, `fonts`, `motion` and `page`.
+
+## A full settings file
+
+For a made-up kite maker with two brands on one mark, a font family of its own, a motion of its own and a few
+items. It shows how the parts are written, not what a brand should choose: every value in it was a decision for
+that brand.
+
+```json
+{
+  "comment": "Kitewell, a made-up kite maker with a second brand for its workshop. A setting that is left out takes its default, so most brands need less than this.",
+
+  "name": "Kitewell",
+  "url": "https://kitewell.example",
+  "tone": "dark",
+
+  "about": {
+    "lead": "One kite for the whole family. Kitewell flies it in Breeze, and its workshop in Poppy.",
+    "status": "Draft. Nothing here is approved yet.",
+    "family": [
+      "<b>Kitewell is the parent.</b> The kite with its lower right facet in Breeze, alone or next to the name.",
+      "<b>The workshop is a branch.</b> The same kite with WORKSHOP under the name, and Poppy in place of Breeze.",
+      "<b>One accent at a time.</b> Colour says which part of the family is speaking.",
+      "<b>Where the name cannot be read,</b> the kite stands alone."
+    ]
+  },
+
+  "colours": {
+    "accents": {
+      "breeze": { "label": "Breeze", "stops": ["#12B5CB", "#7CF0C4"] },
+      "poppy": { "label": "Poppy", "stops": ["#F23D5E", "#FF8A7A"] }
+    }
+  },
+
+  "type": {
+    "wordmark": { "font": "family:Regular", "tracking": 0.02 },
+    "weights": { "hero": 300, "heading": 600, "body": 400 },
+    "family": {
+      "name": "Kitewell Sans",
+      "sources": [
+        { "script": "latin", "name": "Raleway", "file": "fonts/Raleway[wght].ttf", "licence": "fonts/OFL-Raleway.txt" }
+      ]
+    }
+  },
+
+  "marks": [
+    {
+      "label": "The kite",
+      "file": "mark.svg",
+      "motion": { "module": "motion.js" },
+      "about": {
+        "lead": "Four facets and a tail. The same outline at every size and in every colour version.",
+        "facts": [
+          "<b>The spars are gaps, not lines.</b> The four facets stand apart by one even gap, so the cross is the background showing through.",
+          "<b>It leans 21 degrees,</b> the way a kite sits in the wind."
+        ]
+      },
+      "brands": [
+        {
+          "word": "Kitewell", "accent": "breeze",
+          "about": { "lead": "The parent. The kite with its lower right facet in Breeze." }
+        },
+        {
+          "word": "Kitewell", "desc": "WORKSHOP", "accent": "poppy",
+          "about": { "lead": "The workshop, where kites are built and mended. The same kite, with Poppy in place of Breeze and WORKSHOP under the name." }
+        }
+      ]
+    }
+  ],
+
+  "art": { "sizes": [0.5] },
+
+  "items": [
+    { "item": "business-card", "fields": { "name": "Maya Okafor", "role": "Kite maker", "lines": ["maya@kitewell.example", "+44 20 7946 0102", "kitewell.example"] } },
+    { "item": "letterhead", "fields": { "lines": ["Kitewell Ltd", "12 Harbour Row, Whitby", "hello@kitewell.example"] } },
+    { "item": "sticker" },
+    { "item": "tag", "fields": { "title": "Delta 120", "lines": ["Ripstop sail, carbon spars", "Flies in 8 to 40 km/h", "Ages 8 and up"] } },
+    { "item": "label", "fields": { "title": "Spare line, 30 m", "lines": ["Braided, 45 kg"] } },
+    { "item": "bag" },
+    { "item": "box" },
+    { "item": "tote", "brand": "kitewell-workshop" },
+    { "item": "poster" },
+    { "item": "panel", "id": "shop-sign", "label": "Shop sign", "size": [900, 300] }
+  ],
+
+  "rollout": [
+    { "platform": "web", "brand": "kitewell" },
+    { "platform": "email", "brand": "kitewell" },
+    { "platform": "youtube", "handle": "kitewell", "brand": "kitewell" },
+    { "platform": "instagram", "handle": "kitewell", "brand": "kitewell" }
+  ]
+}
+```

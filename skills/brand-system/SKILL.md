@@ -25,8 +25,7 @@ The knowledge is in the files beside this one. This file is the procedure.
 | [rules/art-and-rollout.md](rules/art-and-rollout.md) | Before the background art, the upload kit, the checks and the page |
 | [rules/items.md](rules/items.md) | Before cards, bags, cups, stickers and other things the brand is put on |
 | [rules/motion.md](rules/motion.md) | Before animating anything |
-| [rules/settings.md](rules/settings.md) | Whenever you write `brand.json`: every key and its default |
-| [example/brand/](example/brand/) | A finished brand to read: settings, mark, a motion of its own, notes |
+| [rules/settings.md](rules/settings.md) | Whenever you write `brand.json`: every key, its default, and a full sample |
 
 ## The engine
 
@@ -144,8 +143,8 @@ the choice into `brand.json`, discard the rest with `run discard`, and note the 
 
 ### 4. Gate three: type
 
-**Every brand gets a typeface chosen for it.** Do not reach for the font of the last brand, and never for the one
-in `example/`: that one belongs to the example. Pick three or four open typefaces of clearly different character
+**Every brand gets a typeface chosen for it.** No font comes with this skill, on purpose: do not reach for the
+one you used for the last brand, or for whatever is on the computer. Pick three or four open typefaces of clearly different character
 that suit what the person said the brand should feel like, ask before fetching them (`run typeface` says what
 would be downloaded), and show the brand's real lockup in each with `run typesheet`, light and heavy where that
 helps. The typeface and how heavy the name is set change a logo more than anything but the mark. Stop until they
@@ -200,7 +199,7 @@ These are short here and argued in [rules/working-with-people.md](rules/working-
 2. **Show options when it is a matter of taste.** Finished ones, side by side, where they cannot be missed. Once
    the choice is made, remove the rest.
 3. **Each brand is its own.** Its typeface, its colours and its items are chosen for it. Nothing is carried over
-   from another brand or from the example because it was at hand.
+   from another brand because it was at hand.
 4. **Motion must make sense.** Animate what the subject would really do. No effect for its own sake. In a loop,
    never move the logo's shapes.
 5. **Nothing goes live without the person's word,** given for that thing at that moment.

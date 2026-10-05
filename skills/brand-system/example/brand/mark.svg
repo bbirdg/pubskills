@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 609 1026">
-  <!-- The Kitewell mark: a kite. Each shape is one part, named by its id. The part with class="accent" takes the
-       brand's colour; the rest stays white on dark and ink on light. Colours written here are not kept. -->
-  <path id="top-left" d="M342.9 239.9L103 147.8L435 0Z"/>
-  <path id="top-right" d="M369.1 250L461.2 10L609 342.1Z"/>
-  <path id="bottom-left" d="M332.9 266.1L160.7 714.6L87.1 171.7Z"/>
-  <path id="bottom-right" class="accent" d="M359.1 276.1L604.9 370.5L186.9 724.6Z"/>
-  <path id="tail" d="M157 804C118 808 50 812 54 836C58 852 119 915 119 951C119 990 52 1016 1 1026C40 1008 88 983 94 957C98 936 23 884 13 827C8 792 102 760 146 750Z"/>
-</svg>

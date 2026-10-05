@@ -121,8 +121,8 @@ last one. So:
    block into `brand.json` (without its `"weights"` line, so that every weight is built, and without
    `"display": null`), run `run fonts` and `run logos`, and discard `options/type`.
 
-**Never use the typeface in `example/` for another brand.** It is the example's own. A brand that ends up in it
-did not have its type chosen.
+**No typeface comes with the skill, on purpose.** There is nothing to fall back on: a brand's type is fetched or
+supplied for that brand, after the person has seen it set in their own name.
 
 ### The name beside the mark
 
@@ -204,8 +204,8 @@ area against the dot's. If the squares come too near their letters the step stop
 smaller or bring `lean` towards 45. Offer a display cut when the brand wants a title face of its own and the
 squares echo something in the mark. Otherwise leave it out: one family is enough.
 
-It only works on a typeface whose dots are round. Many draw them as squares already (Raleway does, which is why
-the example has no display cut): the step says so and stops, and the answer is to leave `display` out.
+It only works on a typeface whose dots are round. Many draw them as squares already (Raleway does, for one): the
+step says so and stops, and the answer is to leave `display` out.
 
 ### How type is used
 

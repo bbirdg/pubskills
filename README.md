@@ -60,8 +60,8 @@ files, and you decide what goes live.
 
 ![Two test brands: Kitewell, a made-up kite maker, and Oat & Ember, a test bakery](docs/also-tested.png)
 
-- **Kitewell**, a made-up kite maker. It ships with the skill as a finished example you can build yourself: two
-  brands on one mark, a motion of its own (the kite rises on the wind), and ten items.
+- **Kitewell**, a made-up kite maker: two brands on one mark, a motion of its own (the kite rises on the wind),
+  and ten items.
 - **Oat & Ember**, a test bakery, light first, in cream and brown. An assistant with nothing but this skill built
   it from a picture of a logo. What tripped it up was fixed, and it was built again.
 - **Edge cases**: a name with an ampersand, two brands that share the same places, a mark of one shape with no
@@ -116,18 +116,6 @@ for system libraries: `npx playwright install-deps chromium` installs them.
 A brand folder can hold code of its own (a mark that moves in its own way is a small script). The engine runs
 it, so build only brand folders you trust, as you would with any project.
 
-### Try the example
-
-```bash
-git clone https://github.com/bbirdg/pubskills
-cd pubskills/skills/brand-system
-node engine/run.js setup
-node engine/run.js all example
-```
-
-That builds Kitewell in under a minute. Open `example/final/review.html`. Add `--motion` to render its animated
-logos too, which takes about five minutes.
-
 ### What it does not do
 
 - It draws **flat marks made of shapes**. A mark with shading, photographs or 3D needs code of its own.
@@ -148,4 +136,4 @@ Made by [bbirdg](https://github.com/bbirdg). Apache License 2.0: use it, change 
 The BlackBird name, its logo and the pictures of them here are not part of that licence. They are bbirdg's own
 brand, shown as an example, and all rights in them are reserved.
 
-The example's typeface, Raleway, is under the SIL Open Font License and its licence is beside it.
+No brand and no font come in the box: the pictures above are what it made, and yours starts from your own logo.

@@ -37,8 +37,8 @@ Do not show options for things that are not taste. Whether a banner is 2560 pixe
 ## Each brand is its own
 
 Nothing is carried from one brand to the next because it was at hand: not the typeface, not the colours, not the
-list of items. The example that comes with the skill is one brand's answers, there to show how the settings are
-written. Its font is its own. If two brands you made look alike, one of them did not get its own decisions.
+list of items. The samples in these rules show how settings are written, not what a brand should choose. If two
+brands you made look alike, one of them did not get its own decisions.
 
 ## Gates
 
