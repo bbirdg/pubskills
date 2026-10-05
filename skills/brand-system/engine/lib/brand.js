@@ -64,9 +64,12 @@ function accent(key, a, colours) {
   };
 }
 
-// one object laid over another: lists are replaced whole, objects are merged key by key
+// One object laid over another: objects are merged key by key. A list of objects (the marks, a mark's brands) is
+// merged item by item, so an option can change one thing about the first mark. Any other list is replaced whole.
 function over(base, top) {
   if (top === undefined) return base;
+  const things = a => Array.isArray(a) && a.length > 0 && a.every(v => v && typeof v === 'object' && !Array.isArray(v));
+  if (things(base) && things(top)) return Array.from({ length: Math.max(base.length, top.length) }, (_, i) => over(base[i], top[i]));
   if (!base || !top || typeof base !== 'object' || typeof top !== 'object' || Array.isArray(base) || Array.isArray(top)) return top;
   const out = { ...base };
   for (const k of Object.keys(top)) out[k] = over(base[k], top[k]);

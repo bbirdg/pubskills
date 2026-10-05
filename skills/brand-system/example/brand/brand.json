@@ -1,0 +1,69 @@
+{
+  "comment": "The example brand: Kitewell, a made-up kite maker. This one file is everything the engine is told. A setting that is left out takes its default, so most brands need less than this. The skill's rules say what each part means.",
+
+  "name": "Kitewell",
+  "url": "https://example.com",
+  "tone": "dark",
+
+  "about": {
+    "lead": "One kite for the whole family. Kitewell flies it in Breeze, and its workshop in Poppy.",
+    "body": "Kitewell is a made-up kite maker. It is here to show what the brand-system skill builds from one drawing, two colours and one typeface.",
+    "status": "An example, not a real brand.",
+    "family": [
+      "<b>Kitewell is the parent.</b> The kite with its lower right facet in Breeze, alone or next to the name.",
+      "<b>The workshop is a branch.</b> The same kite with WORKSHOP under the name, and Poppy in place of Breeze.",
+      "<b>One accent at a time.</b> Colour says which part of the family is speaking.",
+      "<b>Where the name cannot be read,</b> the kite stands alone."
+    ]
+  },
+
+  "colours": {
+    "accents": {
+      "breeze": { "label": "Breeze", "stops": ["#12B5CB", "#7CF0C4"] },
+      "poppy": { "label": "Poppy", "stops": ["#F23D5E", "#FF8A7A"] }
+    }
+  },
+
+  "type": {
+    "family": {
+      "name": "Kitewell Sans",
+      "sources": [
+        { "script": "latin", "name": "Spartan", "file": "fonts/Spartan-VariableFont_wght.ttf", "licence": "fonts/OFL-Spartan.txt" }
+      ],
+      "display": { "name": "Kitewell Display", "lean": 0, "share": 0.66 }
+    }
+  },
+
+  "marks": [
+    {
+      "label": "The kite",
+      "file": "mark.svg",
+      "about": {
+        "lead": "Four facets and a tail. The same outline at every size and in every colour version.",
+        "facts": [
+          "<b>The spars are gaps, not lines.</b> The four facets stand apart by one even gap, so the cross is the background showing through.",
+          "<b>It leans 21 degrees,</b> the way a kite sits in the wind."
+        ]
+      },
+      "brands": [
+        {
+          "word": "Kitewell", "accent": "breeze",
+          "about": { "lead": "The parent. The kite with its lower right facet in Breeze." }
+        },
+        {
+          "word": "Kitewell", "desc": "WORKSHOP", "accent": "poppy",
+          "about": { "lead": "The workshop, where kites are built and mended. The same kite, with Poppy in place of Breeze and WORKSHOP under the name." }
+        }
+      ]
+    }
+  ],
+
+  "art": { "sizes": [0.5] },
+
+  "rollout": [
+    { "platform": "youtube", "handle": "kitewell", "brand": "kitewell" },
+    { "platform": "instagram", "handle": "kitewell", "brand": "kitewell" },
+    { "platform": "web", "brand": "kitewell" },
+    { "platform": "email", "brand": "kitewell" }
+  ]
+}

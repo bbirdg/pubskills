@@ -127,7 +127,7 @@ module.exports = (def, S) => {
     inside: def.inside || G.inside, scale: { wide: 1.29, tall: 1.9, ...(G.scale || {}), ...(def.scale || {}) }, roomy: G.roomy !== false,
     // distances in art and motion were set on a mark 954.02 by 640.19 units: U scales them to this mark's size
     U: Math.sqrt(bw * bh) / Math.sqrt(954.02 * 640.19),
-    schemes, draw, lockupNames, lockupScheme, stills, masterRows, source, lineArt, flat, cropped, glyph, tight,
+    schemes, draw, lockupNames, lockupScheme, stills, masterRows, source, lineArt, flat, cropped, glyph, tight, fit, glyphHeight: def.glyphHeight,
     tokens: () => ({ logo: { clearSpace: '25% of the mark height on every side', ...(def.logo || {}) } }),
   };
   Object.defineProperty(kind, 'motion', { get() { return require('./parts-motion')(kind, S); } });

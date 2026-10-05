@@ -101,7 +101,7 @@ module.exports = (kind, S) => {
       sx.setTransform(ID);
     }
     // while the loop rests, every part is solid and the picture is the still logo
-    return { draw, resting: t => P.every(p => !line(p, t)) };
+    return { draw, resting: t => P.every(p => !line(p, t)), parts: P };
   }
 
   const built_in = {
@@ -123,8 +123,8 @@ module.exports = (kind, S) => {
       loop: 'No shape moves. Each part opens into its outline, the outline runs off, grows back and fills again.',
     },
   };
-  // a brand's own way of moving its mark: a file that gives any of { loop, timing, client, config, words }
+  // a brand's own way of moving its mark: a file that gives any of { timing, config, wrap, words, loop, client }
   if (!M.module) return built_in;
   const own = require(path.resolve(S.dir, 'brand', M.module))(kind, S, built_in);
-  return { ...built_in, ...own, timing: { ...built_in.timing, ...(own.timing || {}) } };
+  return { ...built_in, ...own, timing: { ...built_in.timing, ...(own.timing || {}) }, words: { ...built_in.words, ...(own.words || {}) } };
 };

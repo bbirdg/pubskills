@@ -58,8 +58,9 @@ function config(logo, variant, W, H) {
 
 // ---------------------------------------------------------------- the page: runs in the browser, given the config
 // makeMark: the kind's own part of the page. Given these tools it returns { draw(t, cam), resting(t), backdrop(g) }:
-// how to draw the mark at a time, whether it is at rest then (a loop), and what to paint behind it, if anything
-function client(c, makeMark) {
+// how to draw the mark at a time, whether it is at rest then (a loop), and what to paint behind it, if anything.
+// wrap: a brand's own motion for the mark, laid over the kind's (see the skill's rules on motion)
+function client(c, makeMark, wrap) {
   const W = c.W, H = c.H, T = c.T, TAU = Math.PI * 2, RAD = Math.PI / 180, LOOP = c.variant === 'loop';
   const view = document.getElementById('view'), out = view.getContext('2d');
   const layer = (w = W, h = H) => { const x = document.createElement('canvas'); x.width = w; x.height = h; return [x, x.getContext('2d')]; };
@@ -109,7 +110,10 @@ function client(c, makeMark) {
 
   // =============================================================== the mark, drawn by its kind
   // sx: the picture. lx: light laid over it with a soft halo (a glint, a spark), which is never blurred into the mark
-  const mark = makeMark({ c, W, H, T, TAU, RAD, LOOP, sx, lx, layer, clamp, lerp, pr, E, ID, markMatrix, turned });
+  const tools = { c, W, H, T, TAU, RAD, LOOP, sx, lx, layer, clamp, lerp, pr, E, ID, markMatrix, turned };
+  let mark = makeMark(tools);
+  // a brand's own motion: given the tools and the kind's drawing, it returns what it does differently
+  if (wrap) mark = Object.assign({}, mark, wrap(tools, mark));
 
   // =============================================================== the name
   const LET = c.text ? c.text.letters.map(d => new Path2D(d)) : [], DESC = c.text && c.text.desc ? new Path2D(c.text.desc.d) : null;
@@ -183,7 +187,7 @@ function client(c, makeMark) {
 
 function sceneHtml(logo, variant, W, H) {
   const c = config(logo, variant, W, H);
-  return `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}canvas{display:block}</style></head><body><canvas id="view" width="${W}" height="${H}"></canvas><script>(${client.toString()})(${JSON.stringify(c)}, ${logo.kind.motion.client.toString()})</script></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}canvas{display:block}</style></head><body><canvas id="view" width="${W}" height="${H}"></canvas><script>(${client.toString()})(${JSON.stringify(c)}, ${logo.kind.motion.client.toString()}, ${logo.kind.motion.wrap ? logo.kind.motion.wrap.toString() : 'null'})</script></body></html>`;
 }
 // when a logo is complete, in seconds from the start of its intro
 function doneAt(logo) {

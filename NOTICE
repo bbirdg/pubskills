@@ -11,3 +11,8 @@ of the licence asks for that. A line of credit where people can see it, such as
 The engine uses these libraries, which it installs and does not include:
 opentype.js (MIT), paper (MIT), paperjs-offset (MIT), playwright (Apache 2.0),
 fonttools (MIT), brotli (MIT).
+
+The example brand that ships with the skill (skills/brand-system/example) includes the
+typeface Spartan, Copyright 2020 The Spartan Project Authors
+(https://github.com/bghryct/Spartan-MB), under the SIL Open Font License 1.1. Its licence
+is beside it. Fonts the skill builds for a brand stay under their sources' licences.

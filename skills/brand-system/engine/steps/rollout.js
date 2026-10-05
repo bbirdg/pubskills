@@ -45,7 +45,8 @@ function source(name, b) {
 // solid colour, with its size in pixels and a description, which Gmail asks for
 function senderLogo(m, title, desc) {
   if (!m.flat) throw new Error(`the mark "${m.id}" cannot be written as a sender logo: its kind has no flat outline`);
-  const [bx, by, bw, bh] = m.bounds, size = 900, k = size * 0.62 / bw, x = (size - bw * k) / 2 - bx * k, y = (size - bh * k) / 2 - by * k;
+  // sized like a profile picture: a square or tall mark is made smaller, so that it stays inside the circle a mail app cuts
+  const [bx, by, bw, bh] = m.bounds, size = 900, k = (m.fit ? m.fit(size, 0.62) : size * 0.62) / bw, x = (size - bw * k) / 2 - bx * k, y = (size - bh * k) / 2 - by * k;
   const fit = d => d.replace(/(-?\d*\.?\d+) (-?\d*\.?\d+)/g, (s, a, b) => `${r(a * k + x)} ${r(b * k + y)}`);
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">\n  <title>${title}</title>\n  <desc>${desc || `The ${title} logo: the mark in ${light ? 'black on white' : 'white on black'}`}</desc>\n  <rect width="${size}" height="${size}" fill="${SURFACE}"/>\n  <path fill="${light ? INK : WHITE}" d="${m.flat().map(fit).join('')}"/>\n</svg>\n`;
 }
@@ -67,9 +68,10 @@ for (const entry of B.rollout) {
     else if (item.banner) jobs.push({ out, w: item.banner[0], h: item.banner[1], bg: SURFACE, lock: entry.lock && entry.lock[item.id] || item.lock, make: lockW => banner(m, b, item.banner[0], item.banner[1], lockW) });
     else if (item.picture) {
       const [w, h] = item.picture, bg = item.bg === undefined || item.bg === 'surface' ? SURFACE : item.bg === 'ink' ? INK : item.bg === 'white' ? WHITE : item.bg;
-      // a width may be pixels, a share of the picture, or 'fit:0.6': that share of the widest the mark can be in the picture
-      const width = v => typeof v === 'string' && v.startsWith('fit:') ? r(Math.min(w, h * m.aspect) * v.slice(4)) : v;
-      const html = (item.fill ? `<div style="position:absolute;inset:0;background:${item.fill}"></div>` : '') + (item.place || []).map(([name, v, more]) => center(source(fill(name), b).file, width(v), more && more.clear ? CLEAR : '')).join('');
+      // a width may be pixels, a share of the picture, or 'fit:0.6': that share of the widest the mark can be in the picture.
+      // A size given for the mark alone is for its longer side, so a tall mark stands as high as a wide one would be wide
+      const width = (name, v) => typeof v === 'string' && v.startsWith('fit:') ? r(Math.min(w, h * m.aspect) * v.slice(4)) : /^(mark|tight)/.test(name) && m.aspect < 1 ? r((typeof v === 'string' ? w * parseFloat(v) / 100 : v) * m.aspect) : v;
+      const html = (item.fill ? `<div style="position:absolute;inset:0;background:${item.fill}"></div>` : '') + (item.place || []).map(([name, v, more]) => center(source(fill(name), b).file, width(name, v), more && more.clear ? CLEAR : '')).join('');
       jobs.push({ out, w, h, bg, make: () => html });
     }
     else if (item.text) texts[out] = item.text === 'sender' ? senderLogo(m, fill(item.title || B.name), item.desc && fill(item.desc)) : item.text.startsWith('cropped:') ? m.cropped(item.text.slice(8)) : (() => { throw new Error(`unknown text file "${item.text}" in the place "${entry.platform}"`); })();

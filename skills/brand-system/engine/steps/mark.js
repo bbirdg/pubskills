@@ -163,7 +163,9 @@ function read() {
     fs.mkdirSync(BUILD, { recursive: true });
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.setContent(sheet);
-    const png = path.join(BUILD, `mark-${def.id}.png`);
+    // the sheet of the brand's own mark goes with the engine's notes; the sheet of an option being tried sits beside that option
+    const png = /[\\/]/.test(def.geometry) ? path.join(dir, 'brand', def.geometry.replace(/\.json$/i, '-sheet.png')) : path.join(BUILD, `mark-${def.id}.png`);
+    fs.mkdirSync(path.dirname(png), { recursive: true });
     await page.screenshot({ path: png, fullPage: true });
     made.push({ def, out, png });
   }

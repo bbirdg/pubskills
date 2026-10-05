@@ -6,6 +6,7 @@
 //   node run.js init <brand folder>        start a brand folder: brand/brand.json and the folders round it
 //   node run.js <step> <brand folder> ...  run one step (the list is under `node run.js help`)
 //   node run.js all <brand folder>         every still step in order; add --motion for the moving ones too
+//   node run.js discard <brand folder> ... move options that were not chosen to the computer's bin
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawnSync } = require('child_process');
 
@@ -120,8 +121,32 @@ function all(args) {
   const moving = args.includes('--motion'), rest = args.filter(a => a !== '--motion'), dir = rest.find(a => !a.startsWith('--'));
   if (!dir) { say('usage: node run.js all <brand folder> [--motion]'); return 1; }
   const settings = JSON.parse(fs.readFileSync(path.join(dir, 'brand', 'brand.json'), 'utf8'));
-  const todo = [...STILL.filter(s => s !== 'fonts' || (settings.type && settings.type.family)), ...(moving ? MOVING : []), 'page', 'check'];
-  for (const s of todo) { say(`\n== ${s}`); const code = step(s, rest); if (code) { say(`stopped at ${s}`); return code; } }
+  // the checks run before the page, which shows what they found, and the page itself is tested once it is written
+  const todo = [...STILL.filter(s => s !== 'fonts' || (settings.type && settings.type.family)), ...(moving ? MOVING : []), ['check', '--skip=page'], 'page', ['check', '--only=page']];
+  for (const item of todo) { const [s, ...more] = [].concat(item); say(`\n== ${[s, ...more].join(' ')}`); const code = step(s, [...rest, ...more]); if (code) { say(`stopped at ${s}`); return code; } }
+  return 0;
+}
+
+// What was not chosen leaves the options folder for the computer's bin, where it can still be found: nothing is
+// deleted outright. Only things inside the brand folder's options/ can be discarded this way.
+function discard(args) {
+  const [dir, ...rest] = args.filter(a => !a.startsWith('--'));
+  if (!dir || !rest.length) { say('usage: node run.js discard <brand folder> <file or folder inside its options/> ...'); return 1; }
+  const options = path.resolve(dir, 'options') + path.sep, stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  for (const r of rest) {
+    const p = path.resolve(dir, r);
+    if (!p.startsWith(options)) { say(`not discarded: ${p} is not inside ${options}`); return 1; }
+    if (!fs.existsSync(p)) { say(`already gone: ${p}`); continue; }
+    let binned = false;
+    if (WIN) binned = quiet('powershell', ['-NoProfile', '-NonInteractive', '-Command', "Add-Type -AssemblyName Microsoft.VisualBasic; $p = $env:BRAND_DISCARD; if (Test-Path -LiteralPath $p -PathType Container) { [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($p, 'OnlyErrorDialogs', 'SendToRecycleBin') } else { [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($p, 'OnlyErrorDialogs', 'SendToRecycleBin') }"], { env: { ...process.env, BRAND_DISCARD: p } }).status === 0 && !fs.existsSync(p);
+    else if (process.platform === 'darwin') binned = quiet('osascript', ['-e', `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`]).status === 0 && !fs.existsSync(p);
+    else binned = quiet('gio', ['trash', p]).status === 0 && !fs.existsSync(p);
+    if (binned) { say(`to the bin: ${p}`); continue; }
+    // no bin to be had: set aside inside options/, for the person to delete
+    const aside = path.join(options, '.discarded', `${stamp}-${path.basename(p)}`);
+    fs.mkdirSync(path.dirname(aside), { recursive: true }); fs.renameSync(p, aside);
+    say(`set aside (this computer's bin could not be used): ${aside}`);
+  }
   return 0;
 }
 
@@ -131,10 +156,11 @@ if (cmd === 'setup') code = setup();
 else if (cmd === 'doctor') code = report(state()) ? 0 : 1;
 else if (cmd === 'init') code = init(args);
 else if (cmd === 'all') code = all(args);
+else if (cmd === 'discard') code = discard(args);
 else if (cmd === 'version') say(PKG.version);
 else if (STEPS[cmd]) code = step(cmd, args);
 else {
-  say('usage: node run.js <command> [brand folder] [options]\n\n  setup        install what the steps need, once for each computer\n  doctor       say what is installed and what is missing\n  init         start a brand folder\n  all          every still step in order, then the page and the checks (--motion adds the moving steps)\n');
+  say('usage: node run.js <command> [brand folder] [options]\n\n  setup        install what the steps need, once for each computer\n  doctor       say what is installed and what is missing\n  init         start a brand folder\n  all          every still step in order, then the checks and the page (--motion adds the moving steps)\n  discard      move options that were not chosen to the recycle bin\n');
   for (const [n, s] of Object.entries(STEPS)) say(`  ${n.padEnd(12)} ${s.what}`);
   say('\nAfter the brand folder, most steps take a word that picks a few files (for example `art <folder> outline`),\n--out <folder> to write somewhere else, and --with <file.json> to lay other settings over brand.json for a trial.');
   code = cmd && cmd !== 'help' ? 1 : 0;

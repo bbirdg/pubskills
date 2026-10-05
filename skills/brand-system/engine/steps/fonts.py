@@ -124,14 +124,16 @@ def master(font, weight, style, lines, scripts):
         if tag in font: del font[tag]
 
 # ---- the brand's own characters
-# an outline from the plan as a glyph: its curves are turned into the kind a TrueType font holds
-def drawn(contours):
-    pen = TTGlyphPen(None); q = Cu2QuPen(pen, 0.5)
+# an outline from the plan as a glyph: its curves are turned into the kind a TrueType font holds. The plan draws
+# for capitals 700 units high; k makes the outline as large as this font's own capitals are
+def drawn(contours, k=1):
+    pen = TTGlyphPen(None); q = Cu2QuPen(pen, 0.5 * k)
+    z = (lambda v: v) if k == 1 else (lambda v: v * k)
     for c in contours:
         for s in c:
-            if s[0] == 'M': q.moveTo((s[1], s[2]))
-            elif s[0] == 'L': q.lineTo((s[1], s[2]))
-            else: q.curveTo((s[1], s[2]), (s[3], s[4]), (s[5], s[6]))
+            if s[0] == 'M': q.moveTo((z(s[1]), z(s[2])))
+            elif s[0] == 'L': q.lineTo((z(s[1]), z(s[2])))
+            else: q.curveTo((z(s[1]), z(s[2])), (z(s[3]), z(s[4])), (z(s[5]), z(s[6])))
         q.closePath()
     return pen.glyph()
 
@@ -164,7 +166,10 @@ def brand(font):
     glyf, hmtx, gs = font['glyf'], font['hmtx'], font.getGlyphSet()
     pen = BoundsPen(gs); gs[font.getBestCmap()[ord('I')]].draw(pen)
     stem = pen.bounds[2] - pen.bounds[0]                       # how thick this weight's upright strokes are
-    side = PLAN['side']
+    pen = BoundsPen(gs); gs[font.getBestCmap()[ord('H')]].draw(pen)
+    k = pen.bounds[3] / PLAN['cap']                            # this font's capitals against the 700 units the plan draws for
+    if abs(k - 1) < 0.002: k = 1
+    side = PLAN['side'] * k; at = (lambda x, y: (x, y)) if k == 1 else (lambda x, y: (x * k, y * k))
     def add(name, glyph, advance, codes):
         glyf[name] = glyph
         if name not in font.getGlyphOrder(): font.setGlyphOrder(font.getGlyphOrder() + [name])
@@ -173,15 +178,15 @@ def brand(font):
         for table in font['cmap'].tables:
             if table.isUnicode():
                 for c in codes: table.cmap[c] = name
-    w = max(stem, 24)
+    w = max(stem, 24 * k); wide = (lambda v: v) if k == 1 else (lambda v: round(v * k))
     for g in PLAN['own']:
-        if g['type'] == 'drawn': add(g['name'], drawn(g['contours']), g['advance'], g['codes'])
+        if g['type'] == 'drawn': add(g['name'], drawn(g['contours'], k), wide(g['advance']), g['codes'])
         elif g['type'] == 'weighted':      # drawn in several thicknesses: the one nearest to this weight's strokes
-            step = min(g['steps'], key=lambda s: abs(s['stroke'] - stem))
-            add(g['name'], drawn(step['contours']), step['advance'], g['codes'])
+            step = min(g['steps'], key=lambda s: abs(s['stroke'] * k - stem))
+            add(g['name'], drawn(step['contours'], k), wide(step['advance']), g['codes'])
         # a check mark and a cross, in strokes as thick as the weight's own, standing on the baseline
-        elif g['type'] == 'check': add(g['name'], cornered([stroke([(side + 40, 330), (side + 250, 110), (side + 640, 640)], w)]), 640 + side * 2, g['codes'])
-        elif g['type'] == 'cross': add(g['name'], cornered([stroke([(side + 60, 100), (side + 560, 600)], w), stroke([(side + 60, 600), (side + 560, 100)], w)]), 620 + side * 2, g['codes'])
+        elif g['type'] == 'check': add(g['name'], cornered([stroke([(side + at(40, 330)[0], at(40, 330)[1]), (side + at(250, 110)[0], at(250, 110)[1]), (side + at(640, 640)[0], at(640, 640)[1])], w)]), wide(640) + side * 2 if k == 1 else round(640 * k + side * 2), g['codes'])
+        elif g['type'] == 'cross': add(g['name'], cornered([stroke([(side + at(60, 100)[0], at(60, 100)[1]), (side + at(560, 600)[0], at(560, 600)[1])], w), stroke([(side + at(60, 600)[0], at(60, 600)[1]), (side + at(560, 100)[0], at(560, 100)[1])], w)]), wide(620) + side * 2 if k == 1 else round(620 * k + side * 2), g['codes'])
     return len(PLAN['own'])
 
 # ---- the display cut: a font for titles
@@ -195,10 +200,11 @@ def brand(font):
 D = PLAN['display'] or {}
 HERO, CUT, LEAN, SHARE, ROOM, ALSO = D.get('name'), D.get('cut'), D.get('lean'), D.get('share'), D.get('room'), D.get('also', [])
 
-class Tracer(BasePen):               # a contour as points: about 6 units apart along straight edges, 8 to a curve
+EM = 1                               # the font's units to a thousandth of its em: distances below are in thousandths
+class Tracer(BasePen):               # a contour as points: about 6 thousandths apart along straight edges, 8 to a curve
     def _moveTo(self, p): self.pts = [p]
     def _lineTo(self, p):
-        a = self._getCurrentPoint(); n = max(1, int(hypot(p[0] - a[0], p[1] - a[1]) // 6))
+        a = self._getCurrentPoint(); n = max(1, int(hypot(p[0] - a[0], p[1] - a[1]) // (6 * EM)))
         self.pts += [(a[0] + (p[0] - a[0]) * k / n, a[1] + (p[1] - a[1]) * k / n) for k in range(1, n + 1)]
     def _qCurveToOne(self, c, p):
         a = self._getCurrentPoint()
@@ -226,7 +232,7 @@ def box(pts):                        # left, bottom, right, top, area
     return min(xs), min(ys), max(xs), max(ys), abs(sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(pts, pts[1:] + pts[:1]))) / 2
 
 def holds(a, b): return a[0] <= b[0] + 1 and a[1] <= b[1] + 1 and a[2] >= b[2] - 1 and a[3] >= b[3] - 1
-def near(a, b): return a[0] < b[2] + 100 and b[0] < a[2] + 100 and a[1] < b[3] + 100 and b[1] < a[3] + 100
+def near(a, b): return a[0] < b[2] + 100 * EM and b[0] < a[2] + 100 * EM and a[1] < b[3] + 100 * EM and b[1] < a[3] + 100 * EM
 def gap(a, b): return min(hypot(p[0] - q[0], p[1] - q[1]) for p in a for q in b)
 
 # the leaning square of that area round the middle of a box, as pen moves, clockwise from its top corner. Whole
@@ -238,6 +244,8 @@ def leaning(b, area):
     return [('moveTo', (pts[0],))] + [('lineTo', (p,)) for p in pts[1:]] + [('closePath', ())]
 
 def hero(font):
+    global EM
+    EM = font['head'].unitsPerEm / 1000; room = ROOM * EM
     glyf, hmtx, gs, cmap, order = font['glyf'], font['hmtx'], font.getGlyphSet(), font.getBestCmap(), font.getGlyphOrder()
     if any(hasattr(part, 'transform') or not hasattr(part, 'x') for n in order if glyf[n].isComposite() for part in glyf[n].components):
         raise SystemExit('display cut: a glyph uses a part that is turned, mirrored, scaled or placed by its points; a square in it would lean the wrong way')
@@ -277,16 +285,16 @@ def hero(font):
             if not any(d for _, d in cs): continue
             bs = [box(p) for p, _ in cs]
             for i, (pts, d) in enumerate(cs):
-                if d: out[name, i] = min((gap(pts, cs[j][0]) for j in range(len(cs)) if j != i and near(bs[i], bs[j])), default=100)
+                if d: out[name, i] = min((gap(pts, cs[j][0]) for j in range(len(cs)) if j != i and near(bs[i], bs[j])), default=100 * EM)
         return out
     old, new = rooms(was), rooms(now)
     if not new: raise SystemExit('display cut: no round dot was found in the heaviest weight, so there is nothing to cut. Leave "display" out of the settings')
-    crowded = [f'{n} {new[n, i]:.0f} (round dot {old[n, i]:.0f})' for n, i in new if new[n, i] < ROOM <= old[n, i]]
-    if crowded: raise SystemExit('display cut: squares too near the rest of their letters: ' + ', '.join(crowded) + '. Make "share" smaller')
-    least = min((k for k in new if old[k] >= ROOM), key=new.get)
+    crowded = sorted({f'{n} {new[n, i] / EM:.0f} (round dot {old[n, i] / EM:.0f})' for n, i in new if new[n, i] < room <= old[n, i]})
+    if crowded: raise SystemExit(f'display cut: with "share" at {SHARE}, squares come too near the rest of their letters (thousandths of the em, at least {ROOM} wanted): ' + ', '.join(crowded[:8]) + (f' and {len(crowded) - 8} more' if len(crowded) > 8 else '') + '. Make "share" smaller, or "lean" nearer 45, which stands the squares upright')
+    least = min((k for k in new if old[k] >= room), key=new.get)
     return {'dots': sum(len(v) for v in dots.values()), 'drawn': len(dots), 'glyphs': len(set(n for n, _ in new)),
-            'room': round(new[least]), 'roundRoom': round(old[least]), 'tightest': least[0],
-            'joined': sorted({n for n, i in new if old[n, i] < ROOM})}      # where the source's own dot already runs into its letter
+            'room': round(new[least] / EM), 'roundRoom': round(old[least] / EM), 'tightest': least[0],
+            'joined': sorted({n for n, i in new if old[n, i] < room})}      # where the source's own dot already runs into its letter
 
 def build():
     faces = PLAN['sources']; credits = [credit(f) for f in faces]; scripts = [f['script'] for f in faces]

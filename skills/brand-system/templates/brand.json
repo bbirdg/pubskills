@@ -1,0 +1,30 @@
+{
+  "comment": "The settings of {{name}}. This is the one file the engine is told from: change it, then run the step that reads it. Every key that is left out takes its default. What each key means is in the skill's rules/settings.md, and example/brand/brand.json is a finished one.",
+
+  "name": "{{name}}",
+  "url": "",
+  "tone": "dark",
+
+  "about": {
+    "lead": "",
+    "status": "Draft. Nothing here is approved yet."
+  },
+
+  "colours": {
+    "accents": {
+      "accent": { "label": "Accent", "stops": ["#3D7BFF", "#7CC4FF"] }
+    }
+  },
+
+  "marks": [
+    {
+      "label": "The mark",
+      "file": "mark.svg",
+      "brands": [
+        { "word": "{{name}}" }
+      ]
+    }
+  ],
+
+  "rollout": []
+}
