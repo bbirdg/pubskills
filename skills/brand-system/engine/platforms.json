@@ -28,7 +28,8 @@
     "items": [
       { "id": "profile", "what": "{at} profile picture", "file": "{handle}-profile-1024.png", "svg": "avatar", "width": 1024, "note": "1024 x 1024, shown as a circle. For an account or a bot" },
       { "id": "icon", "what": "Server icon", "file": "{handle}-icon-512.png", "svg": "avatar", "width": 512, "note": "512 x 512, shown as a circle" },
-      { "id": "banner", "what": "Server banner", "file": "{handle}-banner-960x540.png", "banner": [960, 540], "lock": 360, "note": "960 x 540. Only boosted servers can show one" }
+      { "id": "banner", "what": "Server banner", "file": "{handle}-banner-960x540.png", "banner": [960, 540], "lock": 360, "note": "960 x 540. Only boosted servers can show one" },
+      { "id": "profile-banner", "what": "{at} profile banner", "file": "{handle}-profile-banner-1200x480.png", "banner": [1200, 480], "lock": 440, "note": "1200 x 480. Discord shows a profile banner for Nitro members" }
     ]
   },
   "telegram": {
