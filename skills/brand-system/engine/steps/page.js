@@ -10,6 +10,8 @@ const S = require('../lib/system').open();
 const { ACCENTS, NEUTRALS, SEMANTIC, PAPER, INK, WHITE, contrast, r, brand: B, OUT } = S, P = B.prefix;
 const ENGINE = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
 const FONT = S.read('fonts'), ART = S.read('art'), MOTION = S.read('motion'), ARTM = S.read('art-motion'), ROLL = S.read('rollout'), CHECKS = S.read('checks');
+// the things the brand is put on, as far as they are drawn
+const THINGS = (S.read('items') || { items: [] }).items.filter(i => i.faces.every(f => fs.existsSync(path.join(S.OUT, f.svg))));
 
 const has = f => !!f && fs.existsSync(path.join(OUT, f));
 const size = f => has(f) ? fs.statSync(path.join(OUT, f)).size : 0;
@@ -30,6 +32,8 @@ const facts = (items, two) => items.length ? `<ul class="facts${two ? ' two' : '
 
 // the brand is at home on dark or on light: its own surface, and the other one
 const light = B.tone === 'light', OWN = light ? 'paper' : 'ink', OTHER = light ? 'ink' : 'paper', OPP = light ? '-dark' : '-light';
+// the mark in one colour, as a file: the white one for a dark brand, the black one for a light brand
+const FLAT = light ? 'mark-black' : 'mark-white';
 // a brand can be kept off the page ("page": false): its files are still made and listed under Files
 const A0 = Object.keys(ACCENTS)[0] || null, BRANDS = S.brands.filter(b => b.page !== false), PARTS = S.marks.filter(m => m.kind === 'parts'), M0 = S.marks[0], B0 = BRANDS[0];
 // a logo file by what it is ("lockup", "avatar-light", "mark-white"...), or nothing where the mark's kind has none
@@ -65,7 +69,7 @@ const PRESETS = [
 ];
 
 // ---------------------------------------------------------------- type
-const fam = B.type.family, stem = fam ? fam.name.replace(/ /g, '') : '', HERO = FONT && FONT.display;
+const fam = B.type.family, stem = fam ? fam.stem : '', HERO = FONT && FONT.display;
 // what the dots of the title font have become: a square on its corner is a diamond
 const DOTS = !HERO ? '' : HERO.lean === 0 ? 'diamonds' : HERO.lean === 45 ? 'squares' : 'leaning squares', DOT = !HERO ? '' : HERO.lean === 0 ? 'a diamond: a square standing on a corner' : HERO.lean === 45 ? 'an upright square' : `a square that leans ${HERO.lean} degrees`;
 const built = FONT ? FONT.weights.filter(([, s]) => has(`fonts/${stem}-${s}.woff2`)) : [];
@@ -92,7 +96,12 @@ const ctl = (label, pick, items, { note = '', wide = false, end = false, on = nu
 const brandOf = id => S.brands.find(b => b.id === id);
 // the sizes of one animated logo, with the controls that pick which version plays. all: adds the row of logos
 function player(first, all) {
-  if (!motionReady) return `<p class="note">The animated logos are not rendered yet${MOTION ? ` (${MOTION.made} of ${MOTION.of} are)` : ''}. Run the motion step, then this page again.</p>`;
+  if (!motionReady) {
+    // the ones that are rendered so far are shown as they are, on the Motion view: one is looked at before the rest are made
+    const some = MOTION && all ? MOTION.logos.flatMap(l => MOTION.variants.flatMap(v => MOTION.formats.map(f => ({ l, v, f, name: `${l.id}-${v}-${f.join('x')}` })))).filter(x => has(`motion/${x.name}.mp4`) && has(`motion/${x.name}.png`)) : [];
+    return `<p class="note">The animated logos are not all rendered yet${MOTION ? ` (${some.length || MOTION.made} of ${MOTION.of} are)` : ''}. Run the motion step, then this page again.</p>`
+      + (some.length ? `<div class="motion mt">${some.slice(0, 6).map(x => `<figure style="flex:0 1 ${Math.round(300 * x.f[0] / x.f[1])}px"><div class="vbox"><video width="${x.f[0]}" height="${x.f[1]}" muted loop playsinline controls preload="none" aria-label="Animated logo, ${x.f[0]} by ${x.f[1]}" poster="motion/${x.name}.png" src="motion/${x.name}.mp4"></video></div><figcaption class="fc"><span>${esc(x.l.label || x.l.of || x.l.id)}, ${x.v}. ${FMT(x.f)}</span><span class="dl"><a href="motion/${x.name}.mp4" download>MP4</a></span></figcaption></figure>`).join('')}</div>` : '');
+  }
   const l = NAMED.find(x => x.id === first) || NAMED[0];
   if (!l) return '';
   return `<div class="player" data-logo="${l.id}" data-mark="${l.mark}">
@@ -127,7 +136,7 @@ function artSet(b, s, first) {
 // a shape as a small outline of its proportions, beside its name in the controls
 const shapeIcon = s => { const k = 12 / Math.max(s.w, s.h), w = r(s.w * k, 1), h = r(s.h * k, 1); return `<svg viewBox="0 0 14 14" aria-hidden="true"><rect x="${r((14 - w) / 2, 1)}" y="${r((14 - h) / 2, 1)}" width="${w}" height="${h}" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>`; };
 // a brand's art as a row of small pictures that lead to the Art page with that brand picked
-const artStrip = b => { const { f, c } = artOf(b); return `<div class="art-strip mt" style="--n:${f.variants.length}">${f.variants.map(v => `<a href="#art-${b.id}">${img(`${artFile(f, v, c, ART.shapes[0])}.svg`, `${v.label} art`, '', 'loading="lazy"')}<span>${v.label}</span></a>`).join('')}</div>`; };
+const artStrip = b => { const { f, c } = artOf(b); return `<div class="art-strip mt" style="--n:${f.variants.length}">${f.variants.map(v => `<a href="#art-${b.id}">${img(`${artFile(f, v, c, ART.shapes[0])}${light && ART.tones.some(t => t.id === 'light') ? '-light' : ''}.svg`, `${v.label} art`, '', 'loading="lazy"')}<span>${v.label}</span></a>`).join('')}</div>`; };
 
 // ---------------------------------------------------------------- the upload kit
 // each step's tick is remembered under the step's own name, so adding a step later does not move the ticks
@@ -171,12 +180,12 @@ function brandView(b) {
   <div class="grid g4 mt">
     ${fileTile('surface', f('avatar'), `${b.label} profile picture`, 'Profile picture', 'width:150px;border-radius:50%')}
     ${fileTile('surface', f(`avatar${OPP}`), `${b.label} profile picture, ${light ? 'dark' : 'light'}`, light ? 'Dark variant' : 'Light variant', 'width:150px;border-radius:50%')}
-    ${fileTile('surface', f('icon'), 'Square icon', 'Square icon', 'width:150px;border-radius:14px')}
+    ${fileTile(light ? 'paper' : 'surface', f('icon'), 'Square icon', 'Square icon', 'width:150px;border-radius:14px')}
     ${fileTile(OWN, f('mark'), 'The mark alone', 'The mark alone', 'height:120px')}
   </div>
   <div class="grid g2 mt">
     ${fav ? favRow(fav, 'Favicon at 16, 32 and 48 px, then 16 and 32 enlarged five times.') : ''}
-    ${f('mark-flat') ? `<figure>${sizesStrip(f('mark-flat'), OWN)}<figcaption>The flat mark at 16, 24, 32, 48 and 64 px wide.</figcaption></figure>` : ''}
+    ${f(FLAT) ? `<figure>${sizesStrip(f(FLAT), OWN)}<figcaption>The flat mark at 16, 24, 32, 48 and 64 px wide.</figcaption></figure>` : ''}
   </div>
   ${moving ? `<h2 id="${id}-motion">Animated logo</h2>
   <p>An intro and a loop, with the name or as the mark alone, in ${inWords(MOTION.formats.length)} sizes. Each one comes as an MP4 on the brand background and as two transparent files.</p>
@@ -286,7 +295,7 @@ const start = view('start', 'Start', `
       ${about.body ? `<p>${about.body}</p>` : ''}
       <div class="note warn mt"><b>${about.status || 'Made, not published.'}</b> ${about.statusNote || `Every file here is ready and waits on this computer. Nothing has been uploaded anywhere${ROLL ? ': what goes where is listed under <a href="#rollout">Rollout</a>' : ''}.`}</div>
     </div>
-    <div class="tile ${OWN}">${img(file(B0, 'mark-flat') || file(B0, 'mark'), `${B.name} mark`, '', 'style="width:min(100%,560px);max-height:340px"')}</div>
+    <div class="tile ${OWN}">${img(file(B0, light ? 'mark' : FLAT) || file(B0, 'mark'), `${B.name} mark`, '', 'style="width:min(100%,560px);max-height:340px"')}</div>
   </div>
   ${BRANDS.length > 1 ? `<h2>The family</h2>
   <p>Each brand has its own page with its lockups, icons${MOTION ? ', animated logo' : ''} and upload-ready files.</p>
@@ -307,8 +316,9 @@ const start = view('start', 'Start', `
     <div><h3>Find a file</h3>
       <ul class="finder">
         ${ROLL ? '<li><a href="#rollout">A profile picture, a banner, an icon</a><span>Cut to each platform\'s size</span></li>' : ''}
-        ${ART ? '<li><a href="#art">A background</a><span>Art for each brand, in three shapes and two sizes</span></li>' : ''}
-        <li><a href="${(file(B0, 'mark-white') || '').replace('/svg/', '/png/').replace('.svg', '.png')}" download>The mark for a thumbnail or a video</a><span>Flat white PNG. The black one is next to it</span></li>
+        ${THINGS.length ? `<li><a href="#items">A card, a bag, a sticker</a><span>${capital(inWords(THINGS.length))} thing${THINGS.length > 1 ? 's' : ''} at real size, each with its print file</span></li>` : ''}
+        ${ART ? `<li><a href="#art">A background</a><span>Art for ${BRANDS.length > 1 ? 'each brand' : 'the brand'}, in ${inWords(ART.shapes.length)} shape${ART.shapes.length > 1 ? 's' : ''} and ${inWords(ART.sizes.length)} size${ART.sizes.length > 1 ? 's' : ''}</span></li>` : ''}
+        <li><a href="${(file(B0, FLAT) || '').replace('/svg/', '/png/').replace('.svg', '.png')}" download>The mark for a thumbnail or a video</a><span>Flat ${light ? 'black' : 'white'} PNG. The ${light ? 'white' : 'black'} one is next to it</span></li>
         ${motionReady ? `<li><a href="#motion-all">An animated intro or loop</a><span>Every logo, ${inWords(MOTION.formats.length)} sizes${clearReady ? ', also with no background for editing' : ''}</span></li>` : ''}
         ${built.length ? `<li><a href="#type-files">The fonts</a><span>${HERO ? 'The hero font and ' : ''}${built.length} weights of ${fam.name}, TTF and WOFF2</span></li>` : ''}
         <li><a href="tokens/${B.id}.css">Colours and sizes as code</a><span>CSS variables, and <a href="tokens/${B.id}.tokens.json">JSON</a></span></li>
@@ -348,16 +358,16 @@ const typeView = !built.length ? view('type', 'Type', `
     ${jump([['type-pair', HERO ? 'The pairing' : 'The scale'], HERO && ['type-hero', HERO.family], ['type-now', fam.name], OWNCH.length && ['type-own', 'The brand\'s own characters'], ['type-files', 'Font files']])}
   </header>
   <h2 id="type-pair">${HERO ? 'The pairing' : 'The scale'}</h2>
-  <p>${HERO ? 'One line leads and the rest support it. The hero font is for that one line: a title, the words on a thumbnail, a page\'s headline. The general font does all the reading. They share their letters, so they always sit well together: the hero font is the heaviest weight of the general one with its dots turned into ' + DOTS + '.' : 'One line leads and the rest support it: the heaviest weight for the title, a bold for headings, spaced capitals for labels and a medium weight for reading.'}</p>
+  <p>${HERO ? 'One line leads and the rest support it. The hero font is for that one line: a title, the words on a thumbnail, a page\'s headline. The general font does all the reading. They share their letters, so they always sit well together: the hero font is the heaviest weight of the general one with its dots turned into ' + DOTS + '.' : 'One line leads and the rest support it: one weight for the title, another for headings, spaced capitals for labels and a third for reading.'}</p>
   <div class="mt">
-    <div class="spec"><div class="meta">Hero<br>${HERO ? `${HERO.family}<br>${HERO.weight}, tight` : `${fam.name}<br>${built[built.length - 1][0]}, tight`}</div><div class="t-hero">${WORDS.latin.d}</div>${second('t-hero', 'd')}</div>
+    <div class="spec"><div class="meta">Hero<br>${HERO ? `${HERO.family}<br>${HERO.weight}, tight` : `${fam.name}<br>${B.type.weights.hero || 800}, tight`}</div><div class="t-hero">${WORDS.latin.d}</div>${second('t-hero', 'd')}</div>
     <div class="spec"><div class="meta">Heading<br>${fam.name} ${B.type.weights.heading}</div><div class="t-heading">${WORDS.latin.h}</div>${second('t-heading', 'h')}</div>
     <div class="spec"><div class="meta">Label<br>${B.type.weights.label}, spaced caps</div><div class="t-label">${WORDS.latin.l}</div>${second('t-label', 'l')}</div>
     <div class="spec"><div class="meta">Body<br>${B.type.weights.body}</div><div class="t-body">${WORDS.latin.b}</div>${second('t-body', 'b')}</div>
   </div>
   ${facts([
     '<b>One hero line to a view.</b> A screen, a picture or a page has one title. If two lines shout, neither leads.',
-    HERO ? `<b>Titles only, from 24 px.</b> Never a paragraph, a button, a label or a price. Below 24 px the squares read as plain dots, so use ${fam.name}.` : '<b>The heaviest weight is for titles only.</b> Never a paragraph, a button or a label.',
+    HERO ? `<b>Titles only, from 24 px.</b> Never a paragraph, a button, a label or a price. Below 24 px the squares read as plain dots, so use ${fam.name}.` : '<b>The title weight is for titles only.</b> Never a paragraph, a button or a label.',
     BRANDS.length > 1 ? '<b>Every brand uses the same type.</b> Colour says which brand it is. Type says it is the family.' : '',
     '<b>The logos are not set in it.</b> Each name in a logo is its own drawing and stays as it is.',
   ].filter(Boolean), true)}
@@ -405,7 +415,7 @@ const typeView = !built.length ? view('type', 'Type', `
 
 const sumExt = (dir, ext) => has(dir) ? fs.readdirSync(path.join(OUT, dir)).filter(f => f.endsWith(ext)).reduce((n, f) => n + size(`${dir}/${f}`), 0) : 0;
 const motionView = !MOTION ? '' : view('motion', 'Motion', `
-  <header class="vh"><h1>Motion</h1><p class="lead">Each mark moves the way the thing it shows would move, then comes to rest as the still logo.</p>
+  <header class="vh"><h1>Motion</h1><p class="lead">Each logo has an intro that comes to rest as the still logo, and a loop that starts and ends on it.</p>
     ${jump([['motion-rules', 'How it moves'], ['motion-all', 'Every animated logo'], ['motion-files', 'Files and formats']])}
   </header>
   <h2 id="motion-rules">How it moves</h2>
@@ -420,7 +430,7 @@ const motionView = !MOTION ? '' : view('motion', 'Motion', `
   ${BRANDS.length > 1 ? '<p>Each brand\'s page has its own. This one switches between all of them.</p>' : ''}
   <div class="mt">${player(NAMED[0] && NAMED[0].id, true)}</div>
   <h2 id="motion-files">Files and formats</h2>
-  <div class="table mt"><table><thead><tr><th>File</th><th>What it is</th><th>Use it for</th><th>Folder</th><th>All ${MOTION.of}</th></tr></thead><tbody>
+  <div class="table mt"><table><thead><tr><th>File</th><th>What it is</th><th>Use it for</th><th>Folder</th><th>${motionReady ? `All ${MOTION.of}` : 'So far'}</th></tr></thead><tbody>
     <tr><td><b>MP4</b></td><td>H.264, on the brand background</td><td>Posting as it is, end cards, streams</td><td class="mono">motion/</td><td>${mb(sumExt('motion', '.mp4'))}</td></tr>
     <tr><td><b>MOV</b></td><td>ProRes 4444, transparent</td><td>Editing: Premiere, DaVinci Resolve, After Effects</td><td class="mono">motion/transparent/</td><td>${mb(sumExt('motion/transparent', '.mov'))}</td></tr>
     <tr><td><b>WebM</b></td><td>VP9, transparent</td><td>The web and stream overlays</td><td class="mono">motion/transparent/</td><td>${mb(sumExt('motion/transparent', '.webm'))}</td></tr>
@@ -437,7 +447,7 @@ const artView = !ART || !ART_BRANDS.length ? '' : view('art', 'Art', `
   <div class="art-box mt">
     <div class="controls">
       ${ART_BRANDS.length > 1 ? `<div class="ctl-row">${ctl('Brand', 'brand', ART_BRANDS.map(b => [b.id, dot(b) + esc(b.label), ` id="art-${b.id}"`]), { wide: true })}</div>` : `<div hidden>${ctl('Brand', 'brand', ART_BRANDS.map(b => [b.id, esc(b.label), ` id="art-${b.id}"`]))}</div>`}
-      <div class="ctl-row">${ctl('Shape', 'shape', ART.shapes.map(s => [s.id, shapeIcon(s) + s.label]))}${ctl('Tone', 'tone', ART.tones.map(t => [t.id, t.label]))}${artMoving ? ctl('Motion', 'mode', [['still', 'Still'], ['moving', 'Moving']], { note: `${MOVETONE ? 'light' : 'dark'} only` }) : ''}${ctl('Background', 'back', [['solid', 'Included'], ['clear', 'Transparent']])}${ctl('Clear area', 'area', [['off', 'Hidden'], ['on', 'Shown']], { end: true })}</div>
+      <div class="ctl-row">${ctl('Shape', 'shape', ART.shapes.map(s => [s.id, shapeIcon(s) + s.label]))}${ctl('Tone', 'tone', ART.tones.map(t => [t.id, t.label]), { on: light && ART.tones.some(t => t.id === 'light') ? 'light' : ART.tones[0].id })}${artMoving ? ctl('Motion', 'mode', [['still', 'Still'], ['moving', 'Moving']], { note: `${MOVETONE ? 'light' : 'dark'} only` }) : ''}${ctl('Background', 'back', [['solid', 'Included'], ['clear', 'Transparent']])}${ctl('Clear area', 'area', [['off', 'Hidden'], ['on', 'Shown']], { end: true })}</div>
     </div>
     ${ART_BRANDS.map((b, bi) => ART.shapes.map((s, si) => artSet(b, s, bi === 0 && si === 0)).join('')).join('')}
   </div>
@@ -504,6 +514,18 @@ const componentsView = view('components', 'Components', `
   <p class="small mt">The tokens: <a href="tokens/${B.id}.css">tokens/${B.id}.css</a> and <a href="tokens/${B.id}.tokens.json">${B.id}.tokens.json</a>.</p>`);
 
 // do and do not: drawn from the first flat mark
+// ---------------------------------------------------------------- items: the brand on things
+const itemsView = !THINGS.length ? '' : view('items', 'Items', `
+  <header class="vh"><h1>Items</h1><p class="lead">The brand on the things it hands out, wraps, sends and wears: ${list(THINGS.map(i => esc(i.label.toLowerCase())))}.</p></header>
+  <p>Each one is drawn at its real size. The picture shows the thing, and the files beside it are what a printer or a maker is given.</p>
+  <div class="things mt">${THINGS.map(i => `<figure class="thing" id="item-${i.id}">${i.shown && has(i.shown) ? `<a href="${i.shown}">${img(i.shown, `${i.label}, as it would look`, '', 'loading="lazy"')}</a>` : `<div class="tile ${OWN}">${img(i.faces[0].svg, i.label, '', 'style="max-height:240px"')}</div>`}<figcaption><b>${esc(i.label)}</b>${BRANDS.length > 1 ? ` <span class="small">${esc((brandOf(i.brand) || {}).label || '')}</span>` : ''}<span class="small">${i.size[0]} x ${i.size[1]} ${i.unit}${i.shape === 'circle' ? ', cut round' : ''}${i.bleed ? `. The print file runs ${i.bleed} mm past the cut` : ''}. ${esc(i.note)}</span><span class="dl">${i.faces.map(f => `<a href="${f.svg}" download>${esc(f.label)} SVG</a><a href="${f.png}" download>PNG</a>`).join('')}${i.pdf && has(i.pdf) ? `<a href="${i.pdf}" download>Print PDF</a>` : ''}</span></figcaption></figure>`).join('')}</div>
+  ${facts([
+    '<b>The print files are PDF,</b> in RGB, with every word turned into outlines, so no font is needed to open them. A printer may ask for its own colour profile: they convert it, or say what they need.',
+    THINGS.some(i => ['bag', 'cup', 'box'].includes(i.item)) ? '<b>Bags, cups and boxes are made from the maker\'s own template.</b> These files are the art for their faces: send them with the logo files and let the maker place them.' : '',
+    '<b>The pictures are drawings,</b> made to judge a design by. They are not photographs of a finished thing.',
+    '<b>A logo keeps its own room here too.</b> Where a thing carries the mark\'s art, the logo sits in the art\'s clear area, as everywhere else.',
+  ].filter(Boolean), true)}`);
+
 const usageView = (() => {
   const m = PARTS[0];
   if (!m) return '';
@@ -522,7 +544,7 @@ const usageView = (() => {
     tile('ink', `<div style="transform:scaleX(1.45);width:120px">${draw(grad('u3', st) + paths('#fff', 'url(#u3)'))}</div>`, '<span class="verdict dont">Do not</span> stretch or rotate'),
     A0 ? tile('ink', `<div style="background:#8f8f96;padding:22px;border-radius:8px">${draw(grad('u4', st) + paths('#fff', 'url(#u4)'), 130)}</div>`, '<span class="verdict dont">Do not</span> put colour on mid-tones. Use flat black or white') : '',
     tile('ink', `<div style="filter:drop-shadow(0 0 14px ${A0 ? ACCENTS[A0].solid : WHITE})">${draw(grad('u5', st) + paths('#fff', 'url(#u5)'), 150)}</div>`, '<span class="verdict dont">Do not</span> add glow, gloss or 3D'),
-    tile('ink', `<div style="display:flex;gap:10px;align-items:center;font:700 22px/1 Georgia,serif;color:#fff">${draw(paths('#fff', '#fff'), 90)}<span>${esc(b.word)}</span></div>`, '<span class="verdict dont">Do not</span> retype the name. Use the lockup files'),
+    tile('ink', `<div style="display:flex;gap:10px;align-items:center;font:400 21px/1 'Courier New',Courier,monospace;color:#fff">${draw(paths('#fff', '#fff'), 90)}<span>${esc(b.word)}</span></div>`, '<span class="verdict dont">Do not</span> retype the name. Use the lockup files'),
   ].filter(Boolean);
   return view('usage', 'Do and do not', `
   <header class="vh"><h1>Do and do not</h1><p class="lead">${capital(inWords(cells.filter(c => c.includes('verdict do"')).length))} ways to use the mark, and ${inWords(cells.filter(c => c.includes('verdict dont')).length)} ways not to.</p></header>
@@ -571,6 +593,7 @@ const filesView = view('files', 'Files', `
     <li><a href="tokens/${B.id}.css">tokens/${B.id}.css</a><span>Colours, type and sizes as CSS variables. The same as <a href="tokens/${B.id}.tokens.json">JSON</a></span></li>
     ${S.marks.filter(m => has(`logos/${m.id}/${m.id}-master.pdf`)).map(m => `<li><a href="logos/${m.id}/${m.id}-master.pdf">${esc(m.label)}: master sheet</a><span>Every main version on one page: PDF and <a href="logos/${m.id}/${m.id}-master.svg">SVG</a></span></li>`).join('')}
     ${ART ? `<li><a href="#art">Art</a><span>${artFiles} background files: PNG and SVG, with and without the background, listed under Art</span></li>` : ''}
+    ${THINGS.length ? `<li><a href="#items">Items</a><span>${list(THINGS.map(i => esc(i.label)))}: faces, print files and pictures, listed under Items</span></li>` : ''}
     ${BANNERS.length ? '<li><a href="#channel-art">Channel art</a><span>Banners and covers</span></li>' : ''}
     ${ROLL ? '<li><a href="#rollout">Upload kit</a><span>Every place\'s file at its upload size</span></li>' : ''}
   </ul>
@@ -583,6 +606,7 @@ const filesView = view('files', 'Files', `
     <tr><td class="mono">masters</td><td>The master sheets</td><td class="mono">the logo files</td></tr>
     <tr><td class="mono">rollout</td><td>The upload kit: profile pictures, banners, icons</td><td class="mono">brand.json: rollout</td></tr>
     <tr><td class="mono">art</td><td>The background art, in every shape, size and tone</td><td class="mono">brand.json: art, and each mark's art</td></tr>
+    <tr><td class="mono">items</td><td>The brand on things: cards, bags, stickers and the rest</td><td class="mono">brand.json: items</td></tr>
     <tr><td class="mono">art-motion</td><td>The art as moving loops</td><td class="mono">the art</td></tr>
     <tr><td class="mono">motion</td><td>The animated logos</td><td class="mono">brand.json: each mark's motion</td></tr>
     <tr><td class="mono">check</td><td>The tests listed under Checks</td><td class="mono">nothing: it only reads</td></tr>
@@ -594,7 +618,7 @@ const NAV = [
   [null, [['start', 'Start']]],
   [BRANDS.length > 1 ? 'Brands' : 'Brand', BRANDS.map(b => [b.id, b.label])],
   ['System', [...S.marks.map(m => [`mark-${m.id}`, m.label]), ['colour', 'Colour'], ['type', 'Type'], MOTION && ['motion', 'Motion'], artView && ['art', 'Art'], ['components', 'Components']].filter(Boolean)],
-  ['Applications', [channelView && ['channel-art', 'Channel art'], webView && ['email', 'Email and web']].filter(Boolean)],
+  ['Applications', [channelView && ['channel-art', 'Channel art'], webView && ['email', 'Email and web'], itemsView && ['items', 'Items']].filter(Boolean)],
   ['Use', [usageView && ['usage', 'Do and do not'], ROLL && ['rollout', 'Rollout']].filter(Boolean)],
   ['Reference', [['checks', 'Checks'], ['files', 'Files']]],
 ].filter(g => g[1].length);
@@ -682,6 +706,11 @@ ul.finder.wide li{grid-template-columns:minmax(200px,.6fr) 1fr;gap:16px;align-it
 .sizes{display:flex;flex-wrap:wrap;align-items:flex-end;gap:22px;padding:22px 26px;border-radius:var(--P-radius-m)}
 .sizes.ink{background:var(--P-ink);box-shadow:inset 0 0 0 1px var(--P-surface-3)}.sizes.paper{background:var(--P-paper)}
 .px{image-rendering:pixelated}
+.things{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 22px}
+.thing img{width:100%;border-radius:var(--P-radius-m)}
+.thing figcaption{display:grid;gap:6px;margin-top:12px}
+.thing figcaption b{color:var(--P-text);font-size:15px}
+.thing .dl{flex-wrap:wrap;white-space:normal;gap:6px 14px}
 .ready{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:24px}
 .ready a{display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:center;padding:12px;border-radius:var(--P-radius-m);background:var(--P-surface-1);text-decoration:none;color:var(--P-text);font-size:14px;transition:background .15s}
 .ready a:hover{background:var(--P-surface-2)}
@@ -857,7 +886,7 @@ summary .count{font-weight:600;font-size:13px;color:var(--P-text-3)}
 }
 /* a long row of options that no longer fits on one line is set as an even grid, three across, then two */
 @media (max-width:900px){.ctl.wide{width:100%}.ctl.wide .seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}.ctl.wide .pill{justify-content:center}}
-@media (max-width:560px){.g2,.g3,.g4,.accent-cards,.pairs,.own,.art-set[data-shape="wide"]{grid-template-columns:1fr}.grid[style]{grid-template-columns:1fr !important}.art-set:not([data-shape="wide"]),.art-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.ctl.wide .seg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.g2,.g3,.g4,.accent-cards,.pairs,.own,.things,.art-set[data-shape="wide"]{grid-template-columns:1fr}.grid[style]{grid-template-columns:1fr !important}.art-set:not([data-shape="wide"]),.art-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.ctl.wide .seg{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (prefers-reduced-motion:reduce){*{transition:none !important}}
 `.replace(/--P-/g, `--${P}-`);
 
@@ -880,7 +909,7 @@ ${has(favicon) ? `<link rel="icon" href="${favicon}">` : ''}
   <ul>${NAV.map(([group, items]) => `${group ? `<li class="grp">${group}</li>` : ''}${items.map(([id, label]) => `<li><a href="#${id}">${esc(label)}</a></li>`).join('')}`).join('')}</ul>
 </nav>
 <main>
-${start}${BRANDS.map(brandView).join('')}${markViews}${colourView}${typeView}${motionView}${artView}${componentsView}${channelView}${webView}${usageView}${rolloutView}${checksView}${filesView}
+${start}${BRANDS.map(brandView).join('')}${markViews}${colourView}${typeView}${motionView}${artView}${componentsView}${channelView}${webView}${itemsView}${usageView}${rolloutView}${checksView}${filesView}
 </main>
 </div>
 <script>
@@ -970,6 +999,8 @@ ${start}${BRANDS.map(brandView).join('')}${markViews}${colourView}${typeView}${m
     // a link to #art-<brand> opens the Art page with that brand picked
     function artLink() { var b = /^#art-/.test(location.hash) && document.getElementById(location.hash.slice(1)); if (b && b.classList.contains('pill')) { press(b.parentNode, b); artShow(); } }
     addEventListener('hashchange', artLink); artLink();
+    // a light brand's art opens on its light tone
+    if (artPick('tone')) artShow();
   }
 
   // try a colour

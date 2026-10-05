@@ -48,6 +48,25 @@ const TOKENS = {
   space: ['4px', '8px', '12px', '16px', '24px', '32px', '48px', '72px'],
 };
 
+// The greys above are for the default ink and white. A brand with an ink or a white of its own gets greys of its
+// own colour, on the way from one to the other: each stands as far along the contrast between them as its default
+// does between the default two, so surfaces stay quiet steps above the ink and the three text greys stay apart.
+const INK0 = '#0C0C0E', WHITE0 = '#FFFFFF';
+function greys(ink, white) {
+  if (ink.toUpperCase() === INK0 && white.toUpperCase() === WHITE0) return { neutrals: NEUTRALS, paper: PAPER };
+  const most = Math.log(contrast(ink, white)), most0 = Math.log(contrast(INK0, WHITE0));
+  // the colour on the way from one to the other that stands `ratio` to 1 against the first
+  const between = (from, to, ratio) => { let lo = 0, hi = 1; for (let i = 0; i < 20; i++) { const k = (lo + hi) / 2; if (contrast(mix(from, to, k), from) < ratio) lo = k; else hi = k; } return mix(from, to, hi); };
+  const dark = v => between(ink, white, Math.exp(Math.log(contrast(v, INK0)) / most0 * most)), pale = v => between(white, ink, Math.exp(Math.log(contrast(v, WHITE0)) / most0 * most));
+  return { neutrals: Object.fromEntries(Object.entries(NEUTRALS).map(([k, v]) => [k, k === 'paper-2' ? pale(v) : dark(v)])), paper: Object.fromEntries(Object.entries(PAPER).map(([k, v]) => [k, pale(v)])) };
+}
+// a shade darker than an ink, by the step the default one takes below the default ink
+function deeper(ink) {
+  if (ink.toUpperCase() === INK0) return '#050506';
+  const l = toLab(ink), k = l[0] > 0 ? Math.max(0, l[0] - (toLab(INK0)[0] - toLab('#050506')[0])) / l[0] : 0;
+  return toHex(l.map(v => v * k));
+}
+
 function accent(key, a, colours) {
   if (typeof a === 'string' || Array.isArray(a)) a = { stops: a };
   let stops = [].concat(a.stops || a.solid || []);
@@ -100,12 +119,15 @@ function load(dir, overlays = []) {
 
   // colours
   const c = raw.colours || raw.colors || {};
-  const ink = c.ink || '#0C0C0E', white = c.white || '#FFFFFF';
+  // ink is the brand's dark and white its light: a brand on cream gives "white" its cream, and every light surface takes it
+  const ink = c.ink || INK0, white = c.white || WHITE0;
   for (const [k, v] of Object.entries({ ink, white, ...c.neutrals, ...c.paper, ...c.semantic })) if (!isHex(v)) fail(`colour "${k}" is not a six-digit hex colour: ${v}`);
+  if (toLab(ink)[0] >= toLab(white)[0]) fail(`"ink" is the brand's darkest colour and "white" its lightest, and ${ink} is not darker than ${white}`);
+  const g = greys(ink, white);
   // deep: a shade darker than ink, for the far edge of a soft light on a dark picture
-  B.colours = { ink: ink.toUpperCase(), white: white.toUpperCase(), deep: c.deep || (ink.toUpperCase() === '#0C0C0E' ? '#050506' : mix(ink, '#000000', 0.55)) };
-  B.colours.neutrals = { ink: B.colours.ink, ...NEUTRALS, ...(c.neutrals || {}), paper: B.colours.white };
-  B.colours.paper = { ...PAPER, ...(c.paper || {}) };
+  B.colours = { ink: ink.toUpperCase(), white: white.toUpperCase(), deep: c.deep || deeper(ink) };
+  B.colours.neutrals = { ink: B.colours.ink, ...g.neutrals, ...(c.neutrals || {}), paper: B.colours.white };
+  B.colours.paper = { ...g.paper, ...(c.paper || {}) };
   B.colours.semantic = { ...SEMANTIC, ...(c.semantic || {}) };
   B.colours.accents = {};
   for (const [k, a] of Object.entries(c.accents || {})) {
@@ -163,12 +185,18 @@ function load(dir, overlays = []) {
     if (!Array.isArray(f.sources) || !f.sources.length) fail('"type.family.sources" is missing: the open-licensed fonts the family is built from');
     for (const s of f.sources) if (!s.file) fail('every source in "type.family.sources" needs a "file"');
     B.type.family = { version: '1.000', vendor: B.id.replace(/-/g, '').slice(0, 4).toUpperCase().padEnd(4, ' '), own: ['marks', 'star', 'check', 'cross'], ...f };
+    // what its files are called: the name's letters and digits, and nothing else (Oat & Ember Sans gives OatEmberSans)
+    B.type.family.stem = f.name.normalize('NFKD').replace(/[^A-Za-z0-9]+/g, '');
+    if (!B.type.family.stem) fail('"type.family.name" needs Latin letters: it names the font files');
   }
 
   B.art = { shapes: SHAPES, sizes: [1, 0.5], ...(raw.art || {}) };
   B.motion = { fps: 60, formats: [[1920, 1080], [1080, 1920], [1080, 1080]], variants: ['intro', 'loop'], ...(raw.motion || {}) };
   B.tokens = { ...TOKENS, ...(raw.tokens || {}) };
   B.rollout = raw.rollout || [];
+  // the things the brand is put on: cards, bags, cups, stickers (the items step)
+  B.items = raw.items || [];
+  if (!Array.isArray(B.items) || B.items.some(i => !i || typeof i !== 'object' || (!i.item && !i.module))) fail('"items" is a list, and each entry names a kind of thing with "item" (for example "business-card") or a module of the brand\'s own with "module"');
   B.platforms = raw.platforms || {};
   B.about = raw.about || {};
   B.page = raw.page || {};

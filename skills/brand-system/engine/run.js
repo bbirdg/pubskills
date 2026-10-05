@@ -7,7 +7,7 @@
 //   node run.js init <brand folder>        start a brand folder: brand/brand.json and the folders round it
 //   node run.js <step> <brand folder> ...  run one step (the list is under `node run.js help`)
 //   node run.js all <brand folder>         every still step in order; --motion adds the animated logos, --art-motion the moving art
-//   node run.js discard <brand folder> ... move options that were not chosen to the computer's bin
+//   node run.js discard <brand folder> ... move options that were not chosen to the computer's bin (--left: what the check found left from an earlier build)
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawnSync } = require('child_process');
 
@@ -20,16 +20,20 @@ const MODULES = path.join(HOME, 'node_modules'), PYLIB = path.join(HOME, 'pylib'
 const STEPS = {
   trace: { run: [['node', 'steps/trace.js']], what: 'turn a picture of a logo (PNG, JPG, WebP) into an SVG outline to clean up' },
   mark: { run: [['node', 'steps/mark.js']], what: 'read brand/mark.svg, measure it and write brand/mark.json' },
+  typeface: { run: [['node', 'steps/typeface.js']], what: 'find an open typeface and, with --yes, fetch it into brand/fonts with its licence (needs the network)' },
+  typesheet: { run: [['node', 'steps/typesheet.js']], what: 'the brand\'s real lockup set in several typefaces, side by side, to choose its type by looking' },
   fonts: { run: [['node', 'steps/glyphs.js'], ['python', 'steps/fonts.py']], what: 'build the brand\'s own font family from open-licensed fonts (needs Python)' },
   logos: { run: [['node', 'steps/logos.js']], what: 'every logo file as SVG and PNG, and the design tokens' },
   masters: { run: [['node', 'steps/masters.js']], what: 'one vector page with every main version of each mark (SVG and PDF)' },
   rollout: { run: [['node', 'steps/rollout.js']], what: 'the upload kit: profile pictures, banners, favicons and icons at each platform\'s size' },
   art: { run: [['node', 'steps/art.js']], what: 'background art drawn from the mark, in three shapes and two tones' },
+  items: { run: [['node', 'steps/items.js']], what: 'the brand on things: cards, bags, cups, stickers, at real size with a print file and a picture of each' },
   'art-motion': { run: [['node', 'steps/artmotion.js']], what: 'the art as seamless loops (needs ffmpeg; slow)' },
   motion: { run: [['node', 'steps/motion.js']], what: 'the animated logos as MP4, ProRes 4444 and WebM (needs ffmpeg; slow)' },
   page: { run: [['node', 'steps/page.js']], what: 'final/review.html: the design system as one page to review and approve' },
   check: { run: [['node', 'steps/check.js']], what: 'test what was made: sizes, contrast, clear areas, links, loops' },
   sheet: { run: [['node', 'steps/sheet.js']], what: 'lay options side by side on one page, for a decision' },
+  look: { run: [['node', 'steps/look.js']], what: 'pictures of the page, one for each view, to look at without a browser' },
 };
 const STILL = ['mark', 'fonts', 'logos', 'masters', 'rollout', 'art'];
 
@@ -37,7 +41,10 @@ const say = s => process.stdout.write(s + '\n');
 const sh = (cmd, args, opts = {}) => spawnSync(cmd, args, { stdio: 'inherit', ...opts });
 const quiet = (cmd, args, opts = {}) => spawnSync(cmd, args, { encoding: 'utf8', ...opts });
 const first = out => (out.stdout || out.stderr || '').trim().split(/\r?\n/)[0] || '';
-const env = () => ({ ...process.env, BRAND_SYSTEM_HOME: HOME, NODE_PATH: [MODULES, process.env.NODE_PATH].filter(Boolean).join(path.delimiter), PYTHONPATH: [PYLIB, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter), PYTHONIOENCODING: 'utf-8' });
+// Where BRAND_SYSTEM_HOME is given, the browser goes there too, so that everything the engine installs is in the
+// one folder (a project folder, say, for a tool that may not write anywhere else)
+const BROWSERS = process.env.BRAND_SYSTEM_HOME && !process.env.PLAYWRIGHT_BROWSERS_PATH ? { PLAYWRIGHT_BROWSERS_PATH: path.join(HOME, 'browsers') } : {};
+const env = () => ({ ...process.env, ...BROWSERS, BRAND_SYSTEM_HOME: HOME, NODE_PATH: [MODULES, process.env.NODE_PATH].filter(Boolean).join(path.delimiter), PYTHONPATH: [PYLIB, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter), PYTHONIOENCODING: 'utf-8' });
 
 // the Python that runs the font step: `python`, `python3` or the Windows launcher, whichever is version 3.9 or later
 function python() {
@@ -69,7 +76,7 @@ function report(s) {
   row(!!s.fonttools, 'fonttools', s.fonttools || 'only the fonts step needs it (with brotli)');
   row(!!s.ffmpeg && s.ffprobe && !s.lacks.length, 'ffmpeg', s.ffmpeg ? (s.lacks.length ? `${s.ffmpeg}, but it cannot write ${s.lacks.join(' or ')}: install a full build` : s.ffmpeg) : 'only the motion and art-motion steps need it. Install: ' + (WIN ? 'winget install Gyan.FFmpeg' : process.platform === 'darwin' ? 'brew install ffmpeg' : 'sudo apt install ffmpeg'));
   const still = s.nodeOk && s.libsOk && s.chromium;
-  say(still ? `ready: logos, masters, rollout, art, page, check${s.fonttools ? ', fonts' : ''}${s.ffmpeg && !s.lacks.length ? ', motion, art-motion' : ''}` : 'not ready: run `node run.js setup`');
+  say(still ? `ready: logos, masters, rollout, art, items, page, check${s.fonttools ? ', fonts' : ''}${s.ffmpeg && !s.lacks.length ? ', motion, art-motion' : ''}` : 'not ready: run `node run.js setup`');
   return still;
 }
 
@@ -80,7 +87,7 @@ function setup() {
   say(`1/3  the engine's libraries, into ${HOME}`);
   if (sh('npm', ['install', '--no-audit', '--no-fund', '--loglevel=error'], { cwd: HOME, shell: WIN }).status !== 0) { say('npm install failed: see the message above'); return 1; }
   say('2/3  Chromium, the browser that draws the pictures (a download of a few hundred MB the first time, about 700 MB on disk)');
-  if (sh(process.execPath, [path.join(MODULES, 'playwright', 'cli.js'), 'install', 'chromium'], { cwd: HOME }).status !== 0) { say('Chromium did not install: see the message above'); return 1; }
+  if (sh(process.execPath, [path.join(MODULES, 'playwright', 'cli.js'), 'install', 'chromium'], { cwd: HOME, env: env() }).status !== 0) { say('Chromium did not install: see the message above'); return 1; }
   say('3/3  the font tools, for the fonts step');
   const py = python();
   if (!py) say('     Python 3.9 or later was not found. Everything but the fonts step works without it. Install Python, then run setup again');
@@ -129,21 +136,34 @@ function all(args) {
   let settings;
   try { settings = JSON.parse(fs.readFileSync(path.join(dir, 'brand', 'brand.json'), 'utf8')); }
   catch (e) { say(e.code === 'ENOENT' ? `no settings at ${path.join(path.resolve(dir), 'brand', 'brand.json')}. Start a brand folder with: node run.js init <folder>` : `brand.json is not valid JSON (${e.message})`); return 1; }
-  // the checks run before the page, which shows what they found, and the page itself is tested once it is written
-  const todo = [...STILL.filter(s => s !== 'fonts' || (settings.type && settings.type.family)), ...moving, ['check', '--skip=page'], 'page', ['check', '--only=page']];
-  for (const item of todo) { const [s, ...more] = [].concat(item); say(`\n== ${[s, ...more].join(' ')}`); const code = step(s, [...rest, ...more]); if (code) { say(`stopped at ${s}`); return code; } }
+  // the checks run before the page, which shows what they found. The page itself is tested once it is written, and
+  // written once more so that its Checks view says how that went
+  const todo = [...STILL.filter(s => s !== 'fonts' || (settings.type && settings.type.family)), ...(Array.isArray(settings.items) && settings.items.length ? ['items'] : []), ...moving, ['check', '--skip=page'], 'page', ['check', '--only=page'], 'page'];
+  for (const item of todo) {
+    const [s, ...more] = [].concat(item); say(`\n== ${[s, ...more].join(' ')}`);
+    const code = step(s, [...rest, ...more]);
+    if (code && more[0] === '--only=page') step('page', rest);
+    if (code) { say(`stopped at ${s}`); return code; }
+  }
   return 0;
 }
 
 // What was not chosen leaves the options folder for the computer's bin, where it can still be found: nothing is
-// deleted outright. Only things inside the brand folder's options/ can be discarded this way.
+// deleted outright. Only things inside the brand folder's options/ and final/ can be discarded this way.
+// --left takes the files the check step found left from an earlier build (.build/left.json).
 function discard(args) {
-  const [dir, ...rest] = args.filter(a => !a.startsWith('--'));
-  if (!dir || !rest.length) { say('usage: node run.js discard <brand folder> <file or folder inside its options/> ...'); return 1; }
-  const options = path.resolve(dir, 'options') + path.sep, stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  let [dir, ...rest] = args.filter(a => !a.startsWith('--'));
+  if (dir && args.includes('--left')) {
+    const list = path.join(path.resolve(dir), '.build', 'left.json');
+    if (!fs.existsSync(list)) { say('no list of files left from an earlier build: run the check step first'); return 1; }
+    rest = JSON.parse(fs.readFileSync(list, 'utf8')).files.map(f => path.join('final', f));
+    if (!rest.length) { say('nothing is left from an earlier build'); return 0; }
+  }
+  if (!dir || !rest.length) { say('usage: node run.js discard <brand folder> <file or folder inside its options/ or final/> ...\n       node run.js discard <brand folder> --left     what the check step found left from an earlier build'); return 1; }
+  const options = path.resolve(dir, 'options') + path.sep, final = path.resolve(dir, 'final') + path.sep, stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   for (const r of rest) {
     const p = path.resolve(dir, r);
-    if (!p.startsWith(options)) { say(`not discarded: ${p} is not inside ${options}`); return 1; }
+    if (!p.startsWith(options) && !p.startsWith(final)) { say(`not discarded: ${p} is not inside ${options} or ${final}`); return 1; }
     if (!fs.existsSync(p)) { say(`already gone: ${p}`); continue; }
     let binned = false;
     if (WIN) binned = quiet('powershell', ['-NoProfile', '-NonInteractive', '-Command', "Add-Type -AssemblyName Microsoft.VisualBasic; $p = $env:BRAND_DISCARD; if (Test-Path -LiteralPath $p -PathType Container) { [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($p, 'OnlyErrorDialogs', 'SendToRecycleBin') } else { [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($p, 'OnlyErrorDialogs', 'SendToRecycleBin') }"], { env: { ...process.env, BRAND_DISCARD: p } }).status === 0 && !fs.existsSync(p);
@@ -168,7 +188,7 @@ else if (cmd === 'discard') code = discard(args);
 else if (cmd === 'version') say(PKG.version);
 else if (STEPS[cmd]) code = step(cmd, args);
 else {
-  say('usage: node run.js <command> [brand folder] [options]\n\n  setup        install what the steps need, once for each computer\n  doctor       say what is installed and what is missing\n  init         start a brand folder\n  all          every still step in order, then the checks and the page (--motion adds the animated logos, --art-motion the moving art)\n  discard      move options that were not chosen to the recycle bin\n');
+  say('usage: node run.js <command> [brand folder] [options]\n\n  setup        install what the steps need, once for each computer\n  doctor       say what is installed and what is missing\n  init         start a brand folder\n  all          every still step in order, then the checks and the page (--motion adds the animated logos, --art-motion the moving art)\n  discard      move options that were not chosen, or files left from an earlier build (--left), to the recycle bin\n');
   for (const [n, s] of Object.entries(STEPS)) say(`  ${n.padEnd(12)} ${s.what}`);
   say('\nAfter the brand folder, most steps take a word that picks a few files (for example `art <folder> outline`),\n--out <folder> to write somewhere else, and --with <file.json> to lay other settings over brand.json for a trial.');
   code = cmd && cmd !== 'help' ? 1 : 0;

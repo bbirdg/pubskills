@@ -101,12 +101,22 @@ Save that as `options/mark/b.with.json`, then:
 
 ```bash
 run mark <folder> --with options/mark/b.with.json
-run logos <folder> --with options/mark/b.with.json --out options/mark/b
-run sheet <folder> "Theirs=options/mark/a/logos/..." "Cleaned=options/mark/b/logos/..." --title="The mark"
+run sheet <folder> "Theirs=options/mark/a-sheet.png" "Cleaned=options/mark/b-sheet.png" --on=dark --title="The mark"
 ```
 
 The first mark in the settings is changed by the first item of the list, and so on. The candidate's own sheet is
-written beside it as `b-sheet.png`.
+written beside it as `b-sheet.png`: the mark on dark and on light, with its parts named, and at small sizes. Those
+sheets are what the person compares at this gate. Nothing else is needed yet, and no font.
+
+To show the marks as the real files they will become (the mark alone, the square icon, the profile picture):
+
+```bash
+run logos <folder> --marks --with options/mark/b.with.json --out options/mark/b
+run sheet <folder> "Cleaned=options/mark/b/logos/<mark>/svg/mark/<mark>-mark-white.svg|options/mark/b/logos/<mark>/svg/mark/<mark>-mark-black.svg" --title="The mark"
+```
+
+`--marks` leaves the lockups out, since the name has no font yet. Two files joined by `|` are one option with a
+file for each panel of the sheet: a white mark cannot be seen on the light panel, so its black twin is given there.
 
 ## What you can set for a mark
 

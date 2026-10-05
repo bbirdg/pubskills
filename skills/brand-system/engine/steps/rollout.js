@@ -57,7 +57,7 @@ for (const entry of B.rollout) {
   const p = PLATFORMS[entry.platform];
   if (!p) throw new Error(`"rollout" names the place "${entry.platform}", which is not in platforms.json or under "platforms" in brand.json. Known: ${Object.keys(PLATFORMS).filter(k => k !== 'comment').join(', ')}`);
   const b = entry.brand ? S.brands.find(x => x.id === entry.brand) : S.brands[0];
-  if (!b) throw new Error(`"rollout" names the brand "${entry.brand}", which no mark has`);
+  if (!b) throw new Error(`"rollout" names the brand "${entry.brand}", which no mark has. A brand is named by its id: ${S.brands.map(x => `"${x.id}"`).join(', ')}`);
   const m = b.mark, handle = entry.handle || b.id, folder = `rollout/${entry.folder || p.folder || entry.platform}`;
   if (/[\\/]|\.\./.test(handle) || /\\|\.\./.test(folder)) throw new Error(`"rollout": the handle "${handle}" and the folder "${folder}" go into file names, so they cannot hold a slash or ".."`);
   const fill = t => t.replace(/\{handle\}/g, handle).replace(/\{at\}/g, '@' + handle).replace(/\{brand\}/g, b.label).replace(/\{id\}/g, b.id).replace(/\{mark\}/g, m.id);
@@ -145,7 +145,8 @@ function ico(list) {
   let others = 0;
   for (const i of icos) { if (!i.from.every(f => made[f])) continue; S.put(i.out, ico(i.from.map(f => [+(f.match(/(\d+)x\d+\.png$/) || f.match(/(\d+)\.png$/))[1], made[f]]))); others++; }
   if (!only) for (const [rel, text] of Object.entries(texts)) { S.put(rel, text); others++; }
-  if (!only) S.save('rollout', { comment: 'Written by the rollout step: the upload kit as the page lists it, place by place.', groups });
+  // files: every file of the kit, so that the check can tell one that is left from an earlier build
+  if (!only) S.save('rollout', { comment: 'Written by the rollout step: the upload kit as the page lists it, place by place.', groups, files: [...svgs.map(j => j.out), ...jobs.map(j => j.out), ...icos.map(i => i.out), ...Object.keys(texts)].sort() });
   if (errors.length) throw new Error('could not load: ' + [...new Set(errors)].join(', '));
   if (tooNear.length) throw new Error('a line of the line art runs too near a logo or words in: ' + tooNear.join(', ') + '. Draw the mark larger behind it ("scale" in the mark\'s settings) or move its inside point');
   for (const s of shrunk) console.log(s);

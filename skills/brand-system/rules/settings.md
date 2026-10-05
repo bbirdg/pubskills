@@ -22,7 +22,7 @@ with it in plain words. Unknown keys are ignored, so a `"comment"` is fine anywh
 | Key | Default | What it is |
 | --- | --- | --- |
 | `name` | required | The brand's name, as written |
-| `id` | from the name | Lower-case letters, digits and hyphens. It names the token files and the first mark. A name in another alphabet needs an `id` written out |
+| `id` | from the name | Lower-case letters, digits and hyphens. It names the token files and the first mark. Made from the name: letters and digits kept, accents dropped, everything else a hyphen ("Oat & Ember" gives `oat-ember`). A name in another alphabet needs an `id` written out |
 | `prefix` | from the name | Starts the names of the CSS variables: `--ki-accent`. Two or three letters |
 | `url` | none | The brand's address. It goes into the fonts' own information |
 | `tone` | `"dark"` | `"dark"` or `"light"`: the surface the brand is at home on |
@@ -32,10 +32,11 @@ with it in plain words. Unknown keys are ignored, so a `"comment"` is fine anywh
 
 | Key | Default | What it is |
 | --- | --- | --- |
-| `ink` | `#0C0C0E` | The dark of the brand: the dark background, and text on light |
-| `white` | `#FFFFFF` | The light of the brand |
-| `neutrals` | a ramp from ink to paper | Any of `surface-1`, `surface-2`, `surface-3`, `line`, `text-3`, `text-2`, `text`, `paper-2` |
-| `paper` | three greys | `paper-3`, `paper-line`, `paper-soft`: a quiet fill and two lines for light surfaces |
+| `ink` | `#0C0C0E` | The dark of the brand: the dark background, and text on light. Must be darker than `white` |
+| `white` | `#FFFFFF` | The light of the brand: every light surface. A brand on cream gives its cream here |
+| `neutrals` | a ramp from ink to paper | Any of `surface-1`, `surface-2`, `surface-3`, `line`, `text-3`, `text-2`, `text`, `paper-2`. With an ink or a white of the brand's own they are worked out from the two |
+| `paper` | three greys | `paper-3`, `paper-line`, `paper-soft`: a quiet fill and two lines for light surfaces. Worked out the same way |
+| `deep` | a shade under ink | The far edge of a soft light in dark art |
 | `semantic` | green, red, blue | `success`, `danger`, `info`: for states only |
 | `accents` | none | The brand's colours. See below |
 
@@ -86,7 +87,7 @@ A brand, under a mark:
 | `desc` | none | A line under the name, in capitals, in the accent |
 | `tail` | `0` | How many of the name's last letters take the accent |
 | `accent` | the first accent | An accent's key, or `null` for none |
-| `id` | from the label | Names its files. Must be unique |
+| `id` | from the label | Names its files, and is how `rollout` and `items` name the brand. Must be unique. Made like the brand's id: "Kitewell" with `"desc": "WORKSHOP"` gives `kitewell-workshop`. Write it out when you would rather choose it |
 | `label` | the word and the line under it | What the page calls it |
 | `dir` | `lockup`, then `lockup-<id>` | The folder of its lockups |
 | `motion` | `true` | `false` makes no animated logo for it |
@@ -97,10 +98,10 @@ A brand, under a mark:
 
 | Key | Default | What it is |
 | --- | --- | --- |
-| `wordmark` | `{ "font": "family:ExtraBold", "tracking": -0.03, "size": 200, "cap": "H" }` | The name beside the mark. `font` is a weight of the brand's family, or a font file in `brand/` |
+| `wordmark` | `{ "font": "family:ExtraBold", "tracking": -0.03, "size": 200, "cap": "H" }` | The name beside the mark. `font` is a weight of the brand's family (`family:Regular`, `family:Bold`...), or a font file in `brand/` |
 | `descriptor` | `{ "font": "family:SemiBold", "tracking": 0.42, "scale": 0.32, "cap": "H" }` | The line under the name. Where the name has a font file of its own, this takes the same file unless it names another |
 | `family` | none | The brand's own font family. See below |
-| `weights` | `{ "heading": 700, "label": 600, "body": 500 }` | Which weight does what |
+| `weights` | `{ "heading": 700, "label": 600, "body": 500 }` | Which weight does what. `hero` (800 unless there is a display cut) is the weight of titles |
 | `tracking` | `{ "hero": "-0.02em", "label": "0.14em" }` | Letter spacing of titles and labels |
 | `fallback` | `"Segoe UI", system-ui, sans-serif` | The fonts after the brand's own |
 | `samples` | English, and Arabic | `{ "latin": { "d": "...", "h": "...", "l": "...", "b": "...", "w": "..." } }`: the page's sample lines for a script |
@@ -109,7 +110,7 @@ A brand, under a mark:
 
 | Key | Default | What it is |
 | --- | --- | --- |
-| `name` | required | What the family is called. Not the source's name |
+| `name` | required | What the family is called. Not the source's name. Its files are named after it, letters and digits only |
 | `sources` | required | A list of `{ "script", "name", "file", "licence" }`. The first is the base. Each must be a variable font with a weight axis under the SIL Open Font License |
 | `weights` | all nine the sources reach | A list such as `[400, 600, 800]` |
 | `own` | `["marks", "star", "check", "cross"]` | The brand's own characters, in order. Also `{ "module": "file.js" }` for more |
@@ -127,6 +128,7 @@ A source's `script` is `latin` for the first, then `arabic`, `hebrew`, `greek`, 
 | `motion` | 60 frames, three sizes | `{ "fps": 60, "formats": [[1920, 1080], [1080, 1920], [1080, 1080]], "variants": ["intro", "loop"], "intro": { "lockup": 5, "mark": 4 } }` |
 | `tokens` | radii and spacing | `{ "radius": { "s", "m", "l", "pill" }, "space": [...], "logo": { ... } }` |
 | `rollout` | none | The places the brand is seen. See the rules on the upload kit |
+| `items` | none | The things the brand is put on: cards, bags, stickers. See the rules on items |
 | `platforms` | none | Places of the brand's own |
 | `about` | written for you | `lead`, `body`, `status`, `statusNote`, `family`, `rollout`, `checks`: the page's words about the brand |
 | `page` | | `{ "banned": ["a word"], "credit": true }` |
@@ -137,19 +139,22 @@ A source's `script` is `latin` for the first, then `arabic`, `hebrew`, `greek`, 
 (the marks, a mark's brands) is merged item by item, so `{ "marks": [{ "file": "../options/mark/b.svg" }] }`
 changes only the first mark's drawing. Any other list is replaced whole. With `--out folder` the files go
 somewhere else, and nothing in `final/` is touched. Both can be written with a space or with an equals sign
-(`--out folder`, `--out=folder`).
+(`--out folder`, `--out=folder`), and both are taken from the brand folder, wherever the command is run from:
+`--out options/type/a` is that brand's `options/type/a`.
 
 ## What the engine will not do with a settings file
 
 - Write outside the output folder, or outside the brand folder for the mark's outline. A name with `..` in it
   stops the run.
-- Run code from outside the brand folder. A mark's `kind`, a `motion.module` and a font `own` module are files the
-  engine runs, and they must be in `brand/`.
+- Run code from outside the brand folder. A mark's `kind`, a `motion.module`, an item's `module` and a font `own`
+  module are files the engine runs, and they must be in `brand/`.
+- Delete anything. A file the settings no longer make stays until `run discard` moves it to the recycle bin.
 
 ## Outside the settings
 
 - `BRAND_SYSTEM_HOME`: an environment variable that moves the engine's libraries from `.brand-system` in the home
-  folder to somewhere else.
+  folder to somewhere else. The Chromium browser then goes there too (into `browsers/`), so that everything the
+  engine installs is in one folder.
 - `BRAND_SYSTEM_DEBUG=1`: makes a step that fails show its whole error, not one line.
 - `run check <folder> --only=page` tests one thing, and `--skip=motion,page` leaves things out. The names are
-  `logos`, `colour`, `rollout`, `art`, `fonts`, `motion` and `page`.
+  `logos`, `colour`, `rollout`, `art`, `items`, `fonts`, `motion` and `page`.

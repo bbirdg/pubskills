@@ -94,7 +94,9 @@ async function render(browser, x, OUT) {
 
 async function main() {
   const OUT = S.OUT, filter = S.args.rest[0] || '';
-  const list = jobs().filter(j => j.name.includes(filter)), browser = await launchFilm(), t0 = Date.now();
+  const list = jobs().filter(j => j.name.includes(filter));
+  if (!list.length) throw new Error(`no moving background has "${filter}" in its name. The names start with: ${[...new Set(jobs().map(j => j.name.split('-').slice(0, 2).join('-')))].join(', ')}`);
+  const browser = await launchFilm(), t0 = Date.now();
   let next = 0;
   await Promise.all(Array.from({ length: 3 }, async () => {
     while (next < list.length) {

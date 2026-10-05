@@ -128,14 +128,41 @@ rename.
 
 - every logo file is there and is exactly what the settings make today (so a file older than the settings is caught)
 - contrast of text and accents against their backgrounds
-- every file of the upload kit and the art is there, at the size its name says
+- every file of the upload kit, the art and the items is there, at the size its name says
 - the font family's files, its own characters, and a display cut as wide as the weight it is cut from
-- every animation: size, frame rate, length, and that each loop ends on the frame it starts on
+- every animation: size, frame rate, length, that each loop ends on the frame it starts on, and that it was
+  rendered from today's settings and not from earlier ones
 - the page: every view at desktop and phone width, no error, no sideways scroll, no link that leads nowhere
 
 `run all` runs the checks, writes the page, then tests the page. A failed check ends with an error and says what
 failed: fix it, do not explain it away. Pass on what the checks say in their own words, and add what they cannot
 know: whether the mark looks right, whether a name is free to use, whether a platform has changed its sizes.
+
+Three things a check may say that are not faults in the design:
+
+- **"Not yet".** A set that is partly made (one animation rendered to look at, say) is reported as so many of so
+  many. It does not fail, and the page shows what is there.
+- **"Left from an earlier build".** The engine never deletes. When the settings stop making a file (a kind of art
+  is skipped, a place is taken off the list, the font family is renamed), the old file stays in `final/` and the
+  check fails until it is gone, because a stale logo is the one that gets used by mistake. The list is in
+  `.build/left.json`: read it, then `run discard <folder> --left` moves those files to the recycle bin.
+- **"Rendered before the settings changed".** An animation whose colours or lettering are no longer the brand's.
+  Run the motion step again.
+
+## Looking at the page yourself
+
+You cannot see `final/review.html` the way the person does, so `run look <folder>` writes a picture of every view
+into `.build/page/` (`run look <folder> colour` for one view, `--phone` for a narrow screen). Read them before
+you say the page is ready. A check passing means nothing is broken, not that it looks right.
+
+## Master files, and Illustrator
+
+`run masters` writes one vector page with every main version of each mark, as SVG and as PDF. Both open in
+Illustrator, Affinity, Figma and Inkscape as shapes that can be edited, and every name in them is already
+outlines. The engine cannot write Illustrator's own `.ai` format: only Illustrator can. If the person wants `.ai`
+files and you have a way to drive Illustrator on their computer, open each `final/logos/<mark>/<mark>-master.svg`
+there and save it beside itself as `.ai`. Otherwise tell them it is one "Save as" away. The check lets a
+`-master.ai` stand beside the others.
 
 ## Going live
 

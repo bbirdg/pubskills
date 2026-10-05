@@ -242,10 +242,14 @@ async function render(browser, job, root) {
 
 // every logo, as intro and loop, in every size
 const jobs = () => LOGOS.flatMap(logo => VARIANTS.flatMap(variant => FORMATS.map(([W, H]) => ({ logo, variant, W, H, name: `${logo.id}-${variant}-${W}x${H}` }))));
+// a film's fingerprint: its scene as it would be drawn today. The check sets it against the one the film was rendered
+// from, so a film that is older than the settings (another colour, another typeface) is found
+const print = j => require('crypto').createHash('sha1').update(sceneHtml(j.logo, j.variant, j.W, j.H)).digest('hex').slice(0, 16);
 // what the page reads back: every logo, how long each version runs, when it is complete, and which files are there
-function notes(root) {
-  const has = f => fs.existsSync(path.join(root, f));
+function notes(root, rendered = []) {
+  const has = f => fs.existsSync(path.join(root, f)), before = (S.read('motion') || {}).scenes || {};
   S.save('motion', {
+    scenes: Object.fromEntries(jobs().filter(j => has(j.name + '.mp4')).map(j => [j.name, rendered.includes(j.name) ? print(j) : before[j.name]]).filter(x => x[1])),
     comment: 'Written by the motion step: the animated logos as the page lists them.', fps: FPS, formats: FORMATS, variants: VARIANTS,
     logos: LOGOS.map(l => ({ id: l.id, label: l.label || null, of: l.of || null, named: !!l.word, mark: l.mark || null, accent: l.accent || null, of_mark: l.kind.id, done: +doneAt(l).toFixed(2), duration: Object.fromEntries(VARIANTS.map(v => [v, config(l, v, FORMATS[0][0], FORMATS[0][1]).duration])) })),
     words: Object.fromEntries(MOVING.map(m => [m.id, m.motion.words || {}])),
@@ -259,6 +263,7 @@ async function main() {
   const root = path.join(OUT, 'motion');
   fs.mkdirSync(root, { recursive: true });
   const list = jobs().filter(j => j.name.includes(filter));
+  if (!list.length) throw new Error(`no animated logo has "${filter}" in its name. The names are: ${jobs().map(j => j.name).join(', ')}`);
   const browser = await launchFilm();
   const t0 = Date.now();
   let next = 0;
@@ -269,9 +274,9 @@ async function main() {
     }
   }));
   await browser.close();
-  notes(root);
+  notes(root, list.map(j => j.name));
   console.log(`${list.length} animations in ${((Date.now() - t0) / 1000).toFixed(0)}s -> ${root}`);
 }
 
-module.exports = { LOGOS, FORMATS, VARIANTS, FPS, jobs, sceneHtml, config, doneAt };
+module.exports = { LOGOS, FORMATS, VARIANTS, FPS, jobs, sceneHtml, config, doneAt, print };
 if (require.main === module) main().catch(e => { console.error(e.message); process.exit(1); });

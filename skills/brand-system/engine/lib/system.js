@@ -27,13 +27,17 @@ function open(argv = process.argv.slice(2)) {
   try { return build(argv); } catch (e) { console.error(e.message); process.exit(1); }
 }
 const inside = (root, file) => path.resolve(file) === path.resolve(root) || path.resolve(file).startsWith(path.resolve(root) + path.sep);
+// A path given after the brand folder (--out, --with) is taken from the brand folder, wherever the command is run
+// from: `--out options/type/a` is that brand's options/type/a. A settings file that is not there is looked for from here
+const from = (dir, f) => path.isAbsolute(f) ? f : path.resolve(dir, f);
+const settings = (dir, f) => !path.isAbsolute(f) && !fs.existsSync(path.resolve(dir, f)) && fs.existsSync(path.resolve(f)) ? path.resolve(f) : from(dir, f);
 
 function build(argv) {
   const args = parse(argv);
   if (!args.dir) throw new Error('give the brand folder: the one that holds brand/brand.json');
-  const dir = path.resolve(args.dir), B = brand.load(dir, args.with.map(f => path.resolve(f)));
+  const dir = path.resolve(args.dir), B = brand.load(dir, args.with.map(f => settings(dir, f)));
   // everything a step makes goes into final/. Its own notes (what the page reads back) go into .build/
-  const OUT = path.resolve(args.out || path.join(dir, 'final')), BUILD = args.out ? path.join(OUT, '.build') : path.join(dir, '.build');
+  const OUT = args.out ? from(dir, args.out) : path.join(dir, 'final'), BUILD = args.out ? path.join(OUT, '.build') : path.join(dir, '.build');
   const { ink: INK, white: WHITE, accents: ACCENTS, neutrals: NEUTRALS, paper: PAPER, semantic: SEMANTIC } = B.colours;
 
   const r = (v, d = 2) => +(+v).toFixed(d);
@@ -43,27 +47,57 @@ function build(argv) {
   const fontFile = spec => {
     if (!/^family:/.test(spec)) return path.resolve(dir, 'brand', spec);
     if (!B.type.family) throw new Error(`"${spec}" asks for a weight of the brand's own font family, but "type.family" is not set: name a font file instead, or set the family and run the fonts step`);
-    const name = `${B.type.family.name.replace(/ /g, '')}-${spec.slice(7)}.ttf`, found = [path.join(OUT, 'fonts', name), path.join(dir, 'final', 'fonts', name)].find(f => fs.existsSync(f));
-    if (!found) throw new Error(`the name is set in ${name}, which is not built yet: run the fonts step first`);
+    const name = `${B.type.family.stem}-${spec.slice(7)}.ttf`, found = [path.join(OUT, 'fonts', name), path.join(dir, 'final', 'fonts', name)].find(f => fs.existsSync(f));
+    if (!found) {
+      // the family is built, but its source does not reach that weight: many open fonts stop at Bold
+      const notes = [note('fonts'), path.join(dir, '.build', 'fonts.json')].find(f => fs.existsSync(f)), has = notes ? JSON.parse(fs.readFileSync(notes, 'utf8')).weights.map(w => w[1]) : null, style = spec.slice(7);
+      throw new Error(has && !has.includes(style) ? `the name is set in the ${style} weight, which ${B.type.family.name} does not have: its source gives ${has[0]} to ${has[has.length - 1]}. Under "type", give "wordmark" (and "descriptor") a "font" such as "family:${has[has.length - 1]}"` : `the name is set in ${name}, which is not built yet: run the fonts step first`);
+    }
     return found;
   };
   const loadFont = spec => { const b = fs.readFileSync(fontFile(spec)); return require('opentype.js').parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)); };
   const held = {};
   const FONTS = { get word() { return held.word || (held.word = loadFont(B.type.wordmark.font)); }, get desc() { return held.desc || (held.desc = loadFont(B.type.descriptor.font)); } };
+  // any weight of the brand's own family (the nearest one it has), for words set on a card or a label. A brand with
+  // no family of its own sets them in the font of its name
+  const NINE = [[100, 'Thin'], [200, 'ExtraLight'], [300, 'Light'], [400, 'Regular'], [500, 'Medium'], [600, 'SemiBold'], [700, 'Bold'], [800, 'ExtraBold'], [900, 'Black']];
+  const font = weight => {
+    if (!B.type.family) return FONTS.word;
+    const notes = [note('fonts'), path.join(dir, '.build', 'fonts.json')].find(f => fs.existsSync(f)), has = notes ? JSON.parse(fs.readFileSync(notes, 'utf8')).weights : NINE;
+    const [, style] = has.reduce((a, b) => Math.abs(b[0] - weight) < Math.abs(a[0] - weight) ? b : a);
+    return held[style] || (held[style] = loadFont(`family:${style}`));
+  };
   // opentype.js's own toPathData() emits NaN for some coordinates, so the commands are serialised here
   function pathData(p, d = 2) {
     const n = v => +v.toFixed(d);
     return p.commands.map(c => c.type === 'Z' ? 'Z' : c.type === 'C' ? `C${n(c.x1)} ${n(c.y1)} ${n(c.x2)} ${n(c.y2)} ${n(c.x)} ${n(c.y)}` : c.type === 'Q' ? `Q${n(c.x1)} ${n(c.y1)} ${n(c.x)} ${n(c.y)}` : `${c.type}${n(c.x)} ${n(c.y)}`).join('');
   }
+  // A word is laid out one glyph to a character, with the font's own kerning. opentype.js's own shaping is kept
+  // out of it: it applies a font's ligature and composition rules and stops at kinds of rule it cannot read, which
+  // many typefaces have, so a name with an "fi" in it or a typeface with richer rules would end the step. A logo's
+  // lettering is tracked, and tracked type takes no ligatures anyway. Scripts that are written right to left or
+  // whose letters join or stack (Arabic, Hebrew, Thai and others) cannot be set that way: they go through the
+  // library's shaping, and say so plainly if the font is beyond it.
+  const SIMPLE = /^[\u0000-\u058F\u1E00-\u1FFF\u2000-\u2BFF\uE000-\uF8FF]*$/;
+  const laid = (font, how, text, size, tracking) => {
+    const o = { kerning: true, letterSpacing: tracking };
+    if (!SIMPLE.test(text)) {
+      try { return font[how](text, 0, 0, size, o); }
+      catch (e) { throw new Error(`"${text}" cannot be set in this font: its rules for joining letters are of a kind the engine cannot read (${e.message}). Set the name in another typeface`); }
+    }
+    const shaping = font.stringToGlyphs, notdef = font.glyphs.get(0);
+    font.stringToGlyphs = s => [...s].map(ch => font.glyphs.get(font.charToGlyphIndex(ch)) || notdef);
+    try { return font[how](text, 0, 0, size, o); } finally { font.stringToGlyphs = shaping; }
+  };
   // text converted to outlines; baseline at y = 0
   function outline(font, text, size, tracking = 0) {
-    const p = font.getPath(text, 0, 0, size, { kerning: true, letterSpacing: tracking });
+    const p = laid(font, 'getPath', text, size, tracking);
     const b = p.getBoundingBox();
     return { d: pathData(p), x1: b.x1, x2: b.x2, y1: b.y1, y2: b.y2, w: b.x2 - b.x1 };
   }
   // the same text as separate glyph outlines, laid out exactly as outline() lays them out (motion: letters arrive one by one)
   function glyphs(font, text, size, tracking = 0) {
-    const list = font.getPaths(text, 0, 0, size, { kerning: true, letterSpacing: tracking }).map(p => pathData(p)).filter(Boolean);
+    const list = laid(font, 'getPaths', text, size, tracking).map(p => pathData(p)).filter(Boolean);
     if (list.join('') !== outline(font, text, size, tracking).d) throw new Error('glyph outlines do not add up to the word outline: ' + text);
     return list;
   }
@@ -128,7 +162,7 @@ function build(argv) {
 
   let count = 0;
   const S = {
-    args, dir, OUT, BUILD, brand: B, INK, WHITE, ACCENTS, NEUTRALS, PAPER, SEMANTIC, r, stopsSvg, pathData, FONTS, outline, glyphs, svgDoc, lockupLayout, lockups,
+    args, dir, OUT, BUILD, brand: B, INK, WHITE, ACCENTS, NEUTRALS, PAPER, SEMANTIC, r, stopsSvg, pathData, FONTS, font, outline, glyphs, svgDoc, lockupLayout, lockups,
     contrast: brand.contrast, SIZE, WORD_TRACK, read, save, put, own, xml, inside, uid: () => count++,
     // no line of a background may come nearer to a logo, to words or to a clear area than this share of the picture's width
     CLEARANCE: 0.02,
@@ -143,4 +177,4 @@ function build(argv) {
   return S;
 }
 
-module.exports = { open, parse, inside };
+module.exports = { open, parse, inside, settings };

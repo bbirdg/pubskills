@@ -34,11 +34,18 @@ You cannot know which blue they will like. Do not ask them to imagine it and do 
 
 Do not show options for things that are not taste. Whether a banner is 2560 pixels wide is a fact. Just do it.
 
+## Each brand is its own
+
+Nothing is carried from one brand to the next because it was at hand: not the typeface, not the colours, not the
+list of items. The example that comes with the skill is one brand's answers, there to show how the settings are
+written. Its font is its own. If two brands you made look alike, one of them did not get its own decisions.
+
 ## Gates
 
-Three points where you stop and wait for a clear yes: the mark, colour and type, motion. Plus the final review of
-the page. The reason is cost: everything after the mark is drawn from the mark, so a mark changed late means
-everything is made again.
+Five points where you stop and wait for a clear yes: the mark, colour, type, items, motion. Plus the final review
+of the page. The reason is cost: everything after the mark is drawn from the mark, so a mark changed late means
+everything is made again. Two gates may be shown together when the person finds that easier (colour with type,
+say). They are still separate decisions, and each gets its own yes.
 
 - A gate is passed when the person says so in their own words. Silence, "looks fine I guess" about something else,
   or approval of an earlier version is not a yes for this one.

@@ -20,7 +20,7 @@ what a brand's notes look like when the work is done. The dates and the owner ar
 | 2 May | The spars are gaps between four facets, not lines drawn on top | the owner, from a side option |
 | 3 May | The lower right facet takes the colour. The tail stays white | the owner |
 | 4 May | Breeze (teal to mint) for Kitewell, Poppy (red) for the workshop. Out of four accents | the owner |
-| 4 May | Kitewell Sans, built from Spartan. Out of three typefaces | the owner |
+| 4 May | Kitewell Sans, built from Raleway, with the name set in its Regular weight. Out of three typefaces | the owner |
 | 4 May | A title font with diamond dots, since a diamond is a small kite. The dots are 66% of the round ones: at 90% the two dots of an umlaut touched | the assistant, shown and agreed |
 | 5 May | The kite rises on the wind in its intro. In the loop nothing moves | the owner |
 

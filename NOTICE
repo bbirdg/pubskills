@@ -8,11 +8,16 @@ If you share them, or anything built on them, this notice goes with it: section 
 of the licence asks for that. A line of credit where people can see it, such as
 "brand-system by bbirdg" with the link above, is welcome too.
 
+Not covered by that licence: the BlackBird name, the BlackBird logo and the pictures
+of them in docs/ (blackbird.png, blackbird-intro.gif). They are bbirdg's own brand,
+shown as an example of what the skill makes. All rights in them are reserved: they may
+not be used, changed or shared apart from this repository's own pages.
+
 The engine uses these libraries, which it installs and does not include:
 opentype.js (MIT), paper (MIT), paperjs-offset (MIT), playwright (Apache 2.0),
 fonttools (MIT), brotli (MIT).
 
 The example brand that ships with the skill (skills/brand-system/example) includes the
-typeface Spartan, Copyright 2020 The Spartan Project Authors
-(https://github.com/bghryct/Spartan-MB), under the SIL Open Font License 1.1. Its licence
-is beside it. Fonts the skill builds for a brand stay under their sources' licences.
+typeface Raleway, Copyright 2010 The Raleway Project Authors (impallari@gmail.com), with
+Reserved Font Name "Raleway", under the SIL Open Font License 1.1. Its licence is beside
+it. Fonts the skill builds for a brand stay under their sources' licences.

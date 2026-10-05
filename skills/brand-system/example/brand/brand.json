@@ -25,12 +25,13 @@
   },
 
   "type": {
+    "wordmark": { "font": "family:Regular", "tracking": 0.02 },
+    "weights": { "hero": 300, "heading": 600, "body": 400 },
     "family": {
       "name": "Kitewell Sans",
       "sources": [
-        { "script": "latin", "name": "Spartan", "file": "fonts/Spartan-VariableFont_wght.ttf", "licence": "fonts/OFL-Spartan.txt" }
-      ],
-      "display": { "name": "Kitewell Display", "lean": 0, "share": 0.66 }
+        { "script": "latin", "name": "Raleway", "file": "fonts/Raleway[wght].ttf", "licence": "fonts/OFL-Raleway.txt" }
+      ]
     }
   },
 
@@ -61,10 +62,23 @@
 
   "art": { "sizes": [0.5] },
 
+  "items": [
+    { "item": "business-card", "fields": { "name": "Maya Okafor", "role": "Kite maker", "lines": ["maya@kitewell.example", "+44 20 7946 0102", "kitewell.example"] } },
+    { "item": "letterhead", "fields": { "lines": ["Kitewell Ltd", "12 Harbour Row, Whitby", "hello@kitewell.example"] } },
+    { "item": "sticker" },
+    { "item": "tag", "fields": { "title": "Delta 120", "lines": ["Ripstop sail, carbon spars", "Flies in 8 to 40 km/h", "Ages 8 and up"] } },
+    { "item": "label", "fields": { "title": "Spare line, 30 m", "lines": ["Braided, 45 kg"] } },
+    { "item": "bag" },
+    { "item": "box" },
+    { "item": "tote", "brand": "kitewell-workshop" },
+    { "item": "poster" },
+    { "item": "panel", "id": "shop-sign", "label": "Shop sign", "size": [900, 300] }
+  ],
+
   "rollout": [
-    { "platform": "youtube", "handle": "kitewell", "brand": "kitewell" },
-    { "platform": "instagram", "handle": "kitewell", "brand": "kitewell" },
     { "platform": "web", "brand": "kitewell" },
-    { "platform": "email", "brand": "kitewell" }
+    { "platform": "email", "brand": "kitewell" },
+    { "platform": "youtube", "handle": "kitewell", "brand": "kitewell" },
+    { "platform": "instagram", "handle": "kitewell", "brand": "kitewell" }
   ]
 }

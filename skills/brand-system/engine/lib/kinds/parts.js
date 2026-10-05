@@ -100,9 +100,11 @@ module.exports = (def, S) => {
     if (what === 'avatar') { const av = t === '-flat' ? (light ? 'black' : 'white') : t === '-light' || (!t && light) ? (a ? `${a}-light` : 'black') : t === '-white' ? 'white' : t === '-black' ? 'black' : (a ? `${a}-dark` : 'white'); return { file: `${base}/avatar/${id}-avatar-${av}.svg` }; }
     if (what === 'lockup') return lock('horizontal', tone[t]);
     if (what === 'stacked') return lock('stacked', tone[t]);
+    // flat: one colour on the brand's own surface. A dark brand's is the white file; a light brand's is drawn in its ink
+    if (what === 'mark' && t === '-flat' && light) { const PAD = W * 0.04; return { svg: S.svgDoc(W + PAD * 2, H + PAD * 2, draw({ body: INK, paint: INK }, PAD, PAD, W)) }; }
     if (what === 'mark') return { file: `${base}/mark/${id}-mark-${tone[t]}.svg` };
     if (what === 'icon') return { file: `${base}/icon/${id}-icon-${tone[t]}.svg` };
-    if (what === 'tight') return { svg: tight(schemes[tone[t]]) };
+    if (what === 'tight') return { svg: tight(t === '-flat' && light ? { body: INK, paint: INK } : schemes[tone[t]]) };
     return { file: `${base}/favicon/favicon-${t === '-white' ? 'white' : t === '-black' ? 'black' : t === '-flat' || !(a && accents.includes(a)) ? (light ? 'black' : 'white') : a}.svg` };
   }
 

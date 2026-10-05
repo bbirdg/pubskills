@@ -6,7 +6,7 @@
 # long as the family is renamed and keeps the licence: its text is written next to the fonts.
 # A font for titles can then be cut from the heaviest weight: see "the display cut" below.
 # usage: node run.js fonts <brand folder>        needs: fonttools, brotli; glyphs.js runs first and writes the plan
-import os, sys, io, json, shutil, re
+import os, sys, io, json, shutil, re, unicodedata
 from math import hypot, sqrt, sin, cos, radians
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._g_l_y_f import flagOverlapSimple
@@ -31,13 +31,16 @@ def plan_file(argv):
         elif not a.startswith('--'): args.append(a)
         i += 1
     if not args: sys.exit('give the brand folder: the one that holds brand/brand.json')
-    plan = os.path.join(os.path.abspath(out), '.build', 'font-plan.json') if out else os.path.join(os.path.abspath(args[0]), '.build', 'font-plan.json')
+    # a folder given to --out is taken from the brand folder, as the other steps take it
+    plan = os.path.join(os.path.abspath(args[0]), out, '.build', 'font-plan.json') if out else os.path.join(os.path.abspath(args[0]), '.build', 'font-plan.json')
     if not os.path.exists(plan): sys.exit(f'fonts: the plan for the family is not there ({plan}). This file runs after glyphs.js, which writes it: use `node run.js fonts <brand folder>`')
     return plan
 
 with open(plan_file(sys.argv[1:]), encoding='utf-8') as fh: PLAN = json.load(fh)
 OUT = PLAN['out']
 FAMILY, VERSION, VENDOR, BRAND = PLAN['family'], PLAN['version'], PLAN['vendor'], PLAN['brand']
+# a name as file names and PostScript names carry it: its letters and digits, and nothing else (Oat & Ember Sans gives OatEmberSans)
+bare = lambda name: re.sub(r'[^A-Za-z0-9]+', '', unicodedata.normalize('NFKD', name))
 NINE = [(100, 'Thin'), (200, 'ExtraLight'), (300, 'Light'), (400, 'Regular'), (500, 'Medium'), (600, 'SemiBold'), (700, 'Bold'), (800, 'ExtraBold'), (900, 'Black')]
 # what is taken from a second source: its script with its marks, digits, punctuation and joining controls.
 # Arabic is the one this was built and tested for; the others follow the same path
@@ -96,7 +99,7 @@ Script = lambda c: c['script'][0].upper() + c['script'][1:]
 def names(font, style, credits, family=FAMILY, about=PLAN['about']):
     table = font['name']; table.names = []
     linked = style in ('Regular', 'Bold')
-    ps = f"{family.replace(' ', '')}-{style}"
+    ps = f"{bare(family)}-{style}"
     if len(credits) > 1:
         designers = ' '.join(f"{c['designer']} ({Script(c)})." for c in credits) + f' Joined and mastered for {BRAND}.'
         made = f"{about}: the {Script(credits[0])} of {credits[0]['name']} with " + ' and '.join(f"the {Script(c)} of {c['name']}" for c in credits[1:]) + f", as one family for {'both' if len(credits) == 2 else 'all its'} scripts."
@@ -300,6 +303,8 @@ def hero(font):
         return out
     old, new = rooms(was), rooms(now)
     if not new: raise SystemExit('display cut: no round dot was found in the heaviest weight, so there is nothing to cut. Leave "display" out of the settings')
+    # a typeface that draws its dots as squares already (many do) gives the cut nothing to change but a bullet
+    if cmap.get(ord('i')) not in {n for n, _ in new}: raise SystemExit('display cut: the dot of the i is not round in this typeface, so a display cut would change next to nothing. Leave "display" out of the settings')
     crowded = sorted({f'{n} {new[n, i] / EM:.0f} (round dot {old[n, i] / EM:.0f})' for n, i in new if new[n, i] < room <= old[n, i]})
     if crowded: raise SystemExit(f'display cut: with "share" at {SHARE}, squares come too near the rest of their letters (thousandths of the em, at least {ROOM} wanted): ' + ', '.join(crowded[:8]) + (f' and {len(crowded) - 8} more' if len(crowded) > 8 else '') + '. Make "share" smaller, or "lean" nearer 45, which stands the squares upright')
     least = min((k for k in new if old[k] >= room), key=new.get)
@@ -322,7 +327,7 @@ def build():
         font = TTFont(reload(merge.Merger(options=merge.Options(drop_tables=['STAT', 'MVAR', 'vhea', 'vmtx'])).merge([reload(c) for c in cuts]))) if len(cuts) > 1 else TTFont(reload(cuts[0]))
         nb = brand(font)
         names(font, style, credits); master(font, weight, style, lines, scripts)
-        base = os.path.join(OUT, f"{FAMILY.replace(' ', '')}-{style}")
+        base = os.path.join(OUT, f"{bare(FAMILY)}-{style}")
         font.flavor = None; font.save(base + '.ttf')
         font.flavor = 'woff2'; font.save(base + '.woff2')
         cmap = TTFont(base + '.ttf').getBestCmap()
@@ -331,7 +336,7 @@ def build():
         if HERO and style == CUT:
             font = TTFont(base + '.ttf'); c = hero(font)
             names(font, style, credits, HERO, f'The {BRAND} hero typeface for titles, {FAMILY} {CUT} with its dots as {DOTS}')
-            file = f"{HERO.replace(' ', '')}-{style}"; base = os.path.join(OUT, file)
+            file = f"{bare(HERO)}-{style}"; base = os.path.join(OUT, file)
             font.save(base + '.ttf'); font.flavor = 'woff2'; font.save(base + '.woff2')
             report.append(f"{HERO} {style}: {c['dots']} dots in {c['drawn']} drawn glyphs, seen in {c['glyphs']} glyphs. Least room round a square {c['room']} units "
                           f"({c['tightest']}, round dot {c['roundRoom']}); left as the source has them, the dot running into its letter: {' '.join(c['joined']) or 'none'}. "
@@ -341,7 +346,7 @@ def build():
     # the licence of each source travels with the fonts: its own file, or its own copyright line over the licence's text
     licences = []
     for f, c in zip(faces, credits):
-        name = f"OFL-{c['name'].replace(' ', '')}.txt"; licences.append(name)
+        name = f"OFL-{bare(c['name'])}.txt"; licences.append(name)
         if f.get('licence'): shutil.copy(f['licence'], os.path.join(OUT, os.path.basename(f['licence']) if os.path.basename(f['licence']).startswith('OFL') else name)); licences[-1] = os.path.basename(f['licence']) if os.path.basename(f['licence']).startswith('OFL') else name
         else:
             with open(PLAN['ofl'], encoding='utf-8') as fh: text = fh.read()

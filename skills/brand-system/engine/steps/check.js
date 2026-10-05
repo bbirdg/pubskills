@@ -3,9 +3,13 @@
 //   colour    text and accents stand out enough from what is behind them (WCAG contrast)
 //   rollout   every file of the upload kit is there, at the size its name says
 //   art       every background is there, at the size its name says
+//   items     every face, print file and picture of the things the brand is put on
 //   fonts     the family's files, its own characters, and a display cut that sets as wide as the weight it is cut from
 //   motion    every animated logo and moving background: size, frame rate, length, and loops that end where they start
 //   page      every view opens at desktop and phone width, with no error, no sideways scroll and no link that leads nowhere
+// A file in the output that the settings no longer make (a kind of art that is now skipped, a place taken off the
+// list, a family that was renamed) fails its test: the list goes into .build/left.json, and
+// `node run.js discard <brand folder> --left` moves those files to the bin.
 // It writes .build/checks.json, which the page shows under Checks, and ends with an error code if a test failed.
 // usage: node run.js check <brand folder> [--only=page] [--skip=page,motion]
 const fs = require('fs'), path = require('path');
@@ -30,6 +34,12 @@ function sizes(files) {
 const probe = file => JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries', 'stream=codec_name,profile,width,height,pix_fmt,r_frame_rate,nb_read_packets:format=duration', '-of', 'json', file]).toString());
 const ffprobe = (() => { try { execFileSync('ffprobe', ['-version'], { stdio: 'ignore' }); return true; } catch (e) { return false; } })();
 
+// what is in a folder of the output that the settings do not make today. `also` lets a file through that is welcome there
+const left = [];
+const extra = (folder, made, also = () => false) => { const x = walk(path.join(OUT, folder)).map(f => path.relative(OUT, f).replace(/\\/g, '/')).filter(f => !made.has(f) && !also(f)); left.push(...x); return x; };
+const leftText = x => `${x.length} ${x.length > 1 ? 'files are' : 'file is'} left from an earlier build and not made by the settings any more (${few(x, 3)}). Look at the list in .build/left.json, then move ${x.length > 1 ? 'them' : 'it'} to the bin: node run.js discard <brand folder> --left`;
+const older = x => x.map(f => 'left from an earlier build: ' + f);
+
 const results = [];
 // ok: true passed, false failed, null not made yet (nothing to test)
 const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, text, detail });
@@ -37,16 +47,22 @@ const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, 
 (async () => {
   // ---------------------------------------------------------------- logos
   if (want('logos')) {
-    const svgs = {};
+    const svgs = {}, made = new Set(), toPng = f => f.replace('/svg/', '/png/').replace(/\.svg$/, '.png');
     for (const m of S.marks) {
-      const at = `logos/${m.id}/svg`, api = { add: (rel, svg) => { svgs[`${at}/${rel}`] = svg; }, raw: (rel, svg) => { svgs[`${at}/${rel}`] = svg; }, png: () => {} };
+      const at = `logos/${m.id}/svg`, api = { add: (rel, svg, width) => { svgs[`${at}/${rel}`] = svg; if (width) made.add(toPng(`${at}/${rel}`)); }, raw: (rel, svg) => { svgs[`${at}/${rel}`] = svg; }, png: (svg, rel) => { made.add(`logos/${m.id}/png/${rel}`); } };
       m.stills(api);
-      for (const b of m.brands) for (const name of m.lockupNames(b)) { const s = m.lockupScheme(name), l = S.lockups((x, y, w) => m.draw(s.mark, x, y, w), m.aspect, b.word, b.desc, s, b.tail); svgs[`${at}/${b.dir}/${b.id}-horizontal-${name}.svg`] = l.horizontal; svgs[`${at}/${b.dir}/${b.id}-stacked-${name}.svg`] = l.stacked; }
+      for (const b of m.brands) for (const name of m.lockupNames(b)) {
+        const s = m.lockupScheme(name), l = S.lockups((x, y, w) => m.draw(s.mark, x, y, w), m.aspect, b.word, b.desc, s, b.tail);
+        for (const k of ['horizontal', 'stacked']) { const f = `${at}/${b.dir}/${b.id}-${k}-${name}.svg`; svgs[f] = l[k]; made.add(toPng(f)); }
+      }
     }
     const all = Object.keys(svgs), missing = all.filter(f => !has(f)), stale = all.filter(f => has(f) && fs.readFileSync(path.join(OUT, f), 'utf8') !== svgs[f]);
+    all.forEach(f => made.add(f));
+    // the master sheets stand beside the logos, in whatever formats they were saved
+    const over = missing.length === all.length ? [] : extra('logos', made, f => /^logos\/[^/]+\/[^/]+-master\.[a-z]+$/.test(f));
     const pngs = walk(path.join(OUT, 'logos')).filter(f => f.endsWith('.png')).length;
     if (missing.length === all.length) say('logos', 'Logo files', null, 'Not made yet: run the logos step.');
-    else say('logos', 'Logo files', !missing.length && !stale.length, missing.length || stale.length ? `${missing.length} missing, ${stale.length} older than the settings: run the logos step again.` : `${all.length} SVG files, each exactly what the settings make today, with ${pngs} PNG exports.`, [...missing.map(f => 'missing: ' + f), ...stale.map(f => 'older than the settings: ' + f)].slice(0, 12));
+    else say('logos', 'Logo files', !missing.length && !stale.length && !over.length, missing.length || stale.length ? `${missing.length} missing, ${stale.length} older than the settings: run the logos step again.` : over.length ? leftText(over) : `${all.length} SVG files, each exactly what the settings make today, with ${pngs} PNG exports.`, [...missing.map(f => 'missing: ' + f), ...stale.map(f => 'older than the settings: ' + f), ...older(over)].slice(0, 12));
   }
 
   // ---------------------------------------------------------------- colour
@@ -67,7 +83,8 @@ const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, 
     else if (!R) say('rollout', 'Upload kit', null, 'Not made yet: run the rollout step.');
     else {
       const files = walk(path.join(OUT, 'rollout')).map(f => path.relative(OUT, f).replace(/\\/g, '/')), listed = R.groups.flatMap(g => g.items).filter(i => i.file), missing = listed.filter(i => !has(i.file)).map(i => i.file), z = sizes(files.filter(f => f.endsWith('.png')));
-      say('rollout', 'Upload kit', !missing.length && !z.bad.length, missing.length || z.bad.length ? `${missing.length} files missing, ${z.bad.length} not the size their name says.` : `${files.length} files for ${R.groups.length} places. All ${z.n} pictures with a size in their name have that size. Platform sizes change: check each one in its upload dialog.`, [...missing.map(f => 'missing: ' + f), ...z.bad]);
+      const over = R.files ? extra('rollout', new Set(R.files)) : [];
+      say('rollout', 'Upload kit', !missing.length && !z.bad.length && !over.length, missing.length || z.bad.length ? `${missing.length} files missing, ${z.bad.length} not the size their name says.` : over.length ? leftText(over) : `${files.length} files for ${R.groups.length} places. All ${z.n} pictures with a size in their name have that size. Platform sizes change: check each one in its upload dialog.`, [...missing.map(f => 'missing: ' + f), ...z.bad, ...older(over).slice(0, 8)]);
     }
   }
 
@@ -76,14 +93,28 @@ const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, 
     const A = S.read('art');
     if (!A) say('art', 'Background art', null, 'Not made yet: run the art step.');
     else {
-      const need = [];
+      const need = [], bases = [];
       for (const f of A.families) for (const v of f.variants) for (const c of f.colours) for (const s of A.shapes) for (const t of A.tones) {
         const base = `art/${f.id}/${[f.id, v.id, c.id, s.id, t.id].filter(Boolean).join('-')}`;
+        bases.push(base + '-');
         need.push(base + '.svg', base + '-clear.svg');
         for (const k of A.sizes) need.push(`${base}-${s.w * k}x${s.h * k}.png`, `${base}-${s.w * k}x${s.h * k}-clear.png`);
       }
       const missing = need.filter(f => !has(f)), z = sizes(need.filter(f => f.endsWith('.png') && has(f)));
-      say('art', 'Background art', !missing.length && !z.bad.length, missing.length || z.bad.length ? `${missing.length} of ${need.length} files missing, ${z.bad.length} not the size their name says.` : `${need.length} files, each at the size in its name. Every picture was measured as it was made: no line comes nearer to its clear area than ${S.CLEARANCE * 100}% of the picture's width.`, [...missing.slice(0, 8).map(f => 'missing: ' + f), ...z.bad]);
+      // the loops of the art-motion step stand beside the pictures they are made from
+      const over = extra('art', new Set(need), f => /\.(mp4|webm)$/.test(f) && bases.some(b => f.startsWith(b)));
+      say('art', 'Background art', !missing.length && !z.bad.length && !over.length, missing.length || z.bad.length ? `${missing.length} of ${need.length} files missing, ${z.bad.length} not the size their name says.` : over.length ? leftText(over) : `${need.length} files, each at the size in its name. Every picture was measured as it was made: no line comes nearer to its clear area than ${S.CLEARANCE * 100}% of the picture's width.`, [...missing.slice(0, 8).map(f => 'missing: ' + f), ...z.bad, ...older(over).slice(0, 8)]);
+    }
+  }
+
+  // ---------------------------------------------------------------- items
+  if (want('items')) {
+    const I = S.read('items');
+    if (!B.items.length) say('items', 'Items', null, 'The settings list no things the brand is put on ("items"), so there are none.');
+    else if (!I) say('items', 'Items', null, 'Not made yet: run the items step.');
+    else {
+      const missing = I.files.filter(f => !has(f)), z = sizes(I.files.filter(f => f.endsWith('.png') && has(f))), lost = B.items.length - I.items.length, over = extra('items', new Set(I.files));
+      say('items', 'Items', !missing.length && !z.bad.length && !over.length && !lost, missing.length || z.bad.length || lost ? `${missing.length} files missing, ${z.bad.length} not the size their name says${lost ? `, and ${lost} of the items in the settings not drawn yet` : ''}: run the items step again.` : over.length ? leftText(over) : `${I.items.length} thing${I.items.length > 1 ? 's' : ''} (${I.items.map(i => i.label.toLowerCase()).join(', ')}) in ${I.files.length} files: each face as SVG and PNG, a print file with ${S.read('items').items.some(i => i.bleed) ? 'bleed' : 'every face'} for each, and a picture of the thing. The print files are in RGB with every word as outlines: a printer may ask for its own colour profile or template.`, [...missing.map(f => 'missing: ' + f), ...z.bad, ...older(over).slice(0, 8)]);
     }
   }
 
@@ -93,7 +124,7 @@ const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, 
     if (!B.type.family) say('fonts', 'Fonts', null, 'The settings name no font family to build, so there are no font files.');
     else if (!F) say('fonts', 'Fonts', null, 'Not built yet: run the fonts step.');
     else {
-      const opentype = require('opentype.js'), stem = F.family.replace(/ /g, ''), bad = [];
+      const opentype = require('opentype.js'), stem = B.type.family.stem, bad = [];
       const open = f => { const b = fs.readFileSync(path.join(OUT, 'fonts', f)); return opentype.parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)); };
       for (const [w, s] of F.weights) for (const ext of ['ttf', 'woff2']) if (!has(`fonts/${stem}-${s}.${ext}`)) bad.push(`missing: fonts/${stem}-${s}.${ext}`);
       for (const l of F.licences) if (!has(`fonts/${l}`)) bad.push(`missing: fonts/${l}, the licence that must travel with the fonts`);
@@ -109,7 +140,9 @@ const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, 
         if (moved) bad.push(`${moved} characters of ${F.display.family} are not as wide as in ${F.family} ${F.display.style}`);
         cut = ` ${F.display.family} sets every character as wide as ${F.family} ${F.display.style}: only its ${F.display.dots} dots differ.`;
       } else if (F.display) bad.push(`missing: fonts/${F.display.file}.ttf`);
-      say('fonts', 'Fonts', !bad.length, bad.length ? `${bad.length} problems with the font files.` : `${F.family}, ${F.weights.length} weights as TTF and WOFF2, built from ${F.sources.map(s => s.name).join(' and ')} under the SIL Open Font License, with the licence text beside them.${codes.length ? ` Every weight carries the brand's ${codes.length} own characters.` : ''}${cut}`, bad);
+      const over = extra('fonts', new Set(['fonts/README.txt', ...F.licences.map(l => `fonts/${l}`), ...[...F.weights.map(w => `${stem}-${w[1]}`), ...(F.display ? [F.display.file] : [])].flatMap(f => [`fonts/${f}.ttf`, `fonts/${f}.woff2`])]));
+      bad.push(...older(over));
+      say('fonts', 'Fonts', !bad.length, bad.length ? over.length === bad.length ? leftText(over) : `${bad.length} problems with the font files.` : `${F.family}, ${F.weights.length} weights as TTF and WOFF2, built from ${F.sources.map(s => s.name).join(' and ')} under the SIL Open Font License, with the licence text beside them.${codes.length ? ` Every weight carries the brand's ${codes.length} own characters.` : ''}${cut}`, bad);
     }
   }
 
@@ -118,21 +151,23 @@ const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, 
     const M = S.read('motion'), AM = S.read('art-motion'), browser = null;
     if (!M) say('motion', 'Animated logos', null, 'Not rendered yet: run the motion step (it needs ffmpeg, and takes a while).');
     else {
-      const bad = [];
-      let n = 0;
+      const bad = [], lacking = new Set(), made = new Set();
+      let n = 0, total = 0;
       for (const l of M.logos) for (const v of M.variants) for (const [w, h] of M.formats) {
         const name = `${l.id}-${v}-${w}x${h}`, want = l.duration[v];
+        total++; made.add(`motion/${name}.png`);
         for (const [f, codec] of [[`motion/${name}.mp4`, 'h264'], [`motion/transparent/${name}.mov`, 'prores'], [`motion/transparent/${name}.webm`, 'vp9']]) {
-          if (!has(f)) { bad.push('missing: ' + f); continue; }
+          made.add(f);
+          if (!has(f)) { lacking.add(name); continue; }
           if (!ffprobe) continue;
           const p = probe(path.join(OUT, f)), s = p.streams[0]; n++;
           if (s.codec_name !== codec || s.width !== w || s.height !== h || s.r_frame_rate !== `${M.fps}/1` || +s.nb_read_packets !== Math.round(want * M.fps)) bad.push(`${f}: ${s.codec_name} ${s.width} x ${s.height}, ${s.r_frame_rate} frames a second, ${s.nb_read_packets} frames (wanted ${codec} ${w} x ${h}, ${Math.round(want * M.fps)} frames)`);
         }
-        if (!has(`motion/${name}.png`)) bad.push(`missing: motion/${name}.png`);
+        if (!has(`motion/${name}.png`)) lacking.add(name);
       }
       // a loop ends on the frame it starts on, which is the still logo
       let loops = 0;
-      if (M.variants.includes('loop') && !bad.some(b => b.startsWith('missing'))) {
+      if (M.variants.includes('loop') && !lacking.size) {
         const film = require('./motion'), br = await launch({ args: ['--disable-gpu-vsync', '--force-color-profile=srgb'] });
         for (const j of film.jobs().filter(j => j.variant === 'loop' && j.W === j.H)) {
           const page = await br.newPage({ viewport: { width: j.W, height: j.H }, deviceScaleFactor: 1 });
@@ -144,18 +179,26 @@ const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, 
         }
         await br.close();
       }
-      say('motion', 'Animated logos', !bad.length, bad.length ? `${bad.length} problems with the animated logos.` : `${M.logos.length * M.variants.length * M.formats.length} animations, each as MP4, ProRes 4444 and WebM with a poster.${ffprobe ? ` All ${n} files were probed for size, ${M.fps} frames a second and length.` : ' ffprobe was not found, so the files were not probed.'}${loops ? ` All ${loops} loops end on the frame they start on.` : ''}`, bad.slice(0, 12));
+      const over = extra('motion', made);
+      bad.push(...older(over));
+      // a film that was rendered from other settings than today's
+      const stale = M.scenes ? require('./motion').jobs().filter(j => M.scenes[j.name] && has(`motion/${j.name}.mp4`) && require('./motion').print(j) !== M.scenes[j.name]).map(j => j.name) : [];
+      if (stale.length) bad.push(`${stale.length} ${stale.length > 1 ? 'animations were' : 'animation was'} rendered before the settings changed (${few(stale, 3)}): run the motion step again`);
+      // a set that is partly rendered is not a failure: one animation is looked at before the rest are rendered
+      if (!bad.length && lacking.size) say('motion', 'Animated logos', null, `${total - lacking.size} of ${total} animations are rendered so far${ffprobe && n ? ', and their files are sound' : ''}. Run the motion step to render the rest.`);
+      else say('motion', 'Animated logos', !bad.length, bad.length ? over.length === bad.length ? leftText(over) : `${bad.length} problems with the animated logos.` : `${M.logos.length * M.variants.length * M.formats.length} animations, each as MP4, ProRes 4444 and WebM with a poster.${ffprobe ? ` All ${n} files were probed for size, ${M.fps} frames a second and length.` : ' ffprobe was not found, so the files were not probed.'}${loops ? ` All ${loops} loops end on the frame they start on.` : ''}`, bad.slice(0, 12));
     }
     if (AM) {
-      const A = require('./artmotion'), bad = [];
+      const A = require('./artmotion'), bad = [], whole = A.jobs().filter(j => has(j.file + '.mp4') && has(j.file + '-clear.webm')).length;
       let n = 0;
       for (const j of A.jobs()) for (const f of [j.file + '.mp4', j.file + '-clear.webm']) {
-        if (!has(f)) { bad.push('missing: ' + f); continue; }
+        if (!has(f)) continue;
         if (!ffprobe) continue;
         const s = probe(path.join(OUT, f)).streams[0]; n++;
         if (s.width !== j.w || s.height !== j.h || +s.nb_read_packets !== A.LOOP * A.FPS) bad.push(`${f}: ${s.width} x ${s.height}, ${s.nb_read_packets} frames`);
       }
-      say('art-motion', 'Moving backgrounds', !bad.length, bad.length ? `${bad.length} problems with the moving backgrounds.` : `${A.jobs().length} loops of ${A.LOOP} seconds, each as MP4 and as transparent WebM.${ffprobe ? ` All ${n} files were probed for size and length.` : ''} Their light is a function of the place in the loop, so each one closes without a jump.`, bad.slice(0, 12));
+      if (!bad.length && whole < A.jobs().length) say('art-motion', 'Moving backgrounds', null, `${whole} of ${A.jobs().length} loops are rendered so far. Run the art-motion step to render the rest.`);
+      else say('art-motion', 'Moving backgrounds', !bad.length, bad.length ? `${bad.length} problems with the moving backgrounds.` : `${A.jobs().length} loops of ${A.LOOP} seconds, each as MP4 and as transparent WebM.${ffprobe ? ` All ${n} files were probed for size and length.` : ''} Their light is a function of the place in the loop, so each one closes without a jump.`, bad.slice(0, 12));
     }
   }
 
@@ -202,9 +245,11 @@ const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, 
     }
   }
 
+  // the files left from an earlier build, for `discard --left`
+  if (['logos', 'fonts', 'rollout', 'art', 'items', 'motion'].some(want)) S.save('left', { comment: 'Written by the check step: files in the output that the settings no longer make. `node run.js discard <brand folder> --left` moves them to the bin.', files: left });
   // what was tested before and not this time is kept
   const before = (S.read('checks') || { results: [] }).results.filter(r => !results.some(x => x.id === r.id));
-  const order = ['logos', 'colour', 'fonts', 'rollout', 'art', 'motion', 'art-motion', 'page'], all = [...before, ...results].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  const order = ['logos', 'colour', 'fonts', 'rollout', 'art', 'items', 'motion', 'art-motion', 'page'], all = [...before, ...results].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   S.save('checks', { comment: 'Written by the check step: what was tested and what it showed.', date: new Date().toISOString().slice(0, 10), results: all });
   for (const r of results) { console.log(`${r.ok === true ? 'ok     ' : r.ok === false ? 'FAILED ' : 'not yet'}  ${r.title}: ${r.text}`); for (const d of r.detail) console.log('           ' + d); }
   if (results.some(r => r.ok === false)) process.exit(1);
