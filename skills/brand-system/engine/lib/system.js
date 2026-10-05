@@ -46,7 +46,7 @@ function build(argv) {
   // ---- type: the name beside the mark is set in a font file and turned into outlines, so a logo needs no font
   const fontFile = spec => {
     if (!/^family:/.test(spec)) return path.resolve(dir, 'brand', spec);
-    if (!B.type.family) throw new Error(`"${spec}" asks for a weight of the brand's own font family, but "type.family" is not set: name a font file instead, or set the family and run the fonts step`);
+    if (!B.type.family) throw new Error(`the brand has no typeface yet, so its name cannot be set ("${spec}" asks for a weight of its own font family, and "type.family" is not set). Choose one first: the typeface and typesheet steps, as the skill's rules on type say, or name a font file under "type.wordmark". The mark's own files need no font: logos --marks`);
     const name = `${B.type.family.stem}-${spec.slice(7)}.ttf`, found = [path.join(OUT, 'fonts', name), path.join(dir, 'final', 'fonts', name)].find(f => fs.existsSync(f));
     if (!found) {
       // the family is built, but its source does not reach that weight: many open fonts stop at Bold
