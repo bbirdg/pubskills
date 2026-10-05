@@ -41,7 +41,7 @@ for (const entry of F.own) {
   else if (entry === 'star') own.push({ type: 'drawn', name: 'star', codes: [0x2605], what: 'star', ...glyph(star(), CAP * 1.02) });
   else if (entry === 'check') own.push({ type: 'check', name: 'checkmark', codes: [0x2713], what: 'check mark' });
   else if (entry === 'cross') own.push({ type: 'cross', name: 'cross', codes: [0x2715, 0x2717], what: 'cross' });
-  else if (entry && entry.module) own.push(...require(path.resolve(S.dir, 'brand', entry.module))(kit));
+  else if (entry && entry.module) own.push(...require(S.own(entry.module, '"type.family.own"'))(kit));
   else throw new Error(`"type.family.own" lists ${JSON.stringify(entry)}: it can be "marks", "star", "check", "cross" or { "module": "a file of the brand's own" }`);
 }
 const names = own.map(o => o.name);

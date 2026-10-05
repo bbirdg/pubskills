@@ -16,7 +16,9 @@ const { parse } = require('../lib/system');
 
 const args = parse(process.argv.slice(2));
 if (!args.dir) { console.error('give the brand folder: the one that holds brand/brand.json'); process.exit(1); }
-const dir = path.resolve(args.dir), B = brand.load(dir, args.with.map(f => path.resolve(f))), BUILD = path.join(dir, '.build');
+const dir = path.resolve(args.dir), BUILD = path.join(dir, '.build');
+let B;
+try { B = brand.load(dir, args.with.map(f => path.resolve(f))); } catch (e) { console.error(e.message); process.exit(1); }
 const SIDE = 1000;
 // A lockup sits inside the mark's outline in the widest box that fits there, 3.6 times as wide as it is high. ROOM is
 // how wide that box has to be, as a share of a wide picture's width: the room the engine's layouts were set with

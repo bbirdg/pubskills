@@ -57,14 +57,14 @@ npx skills add bbirdg/pubskills --skill brand-system
 ```
 
 Then ask for what you want ("make a brand system for my logo") or type `/brand-system`. The first time, it checks
-your computer and installs what it needs.
+your computer and installs what it needs, after telling you what that is.
 
 ### What it needs
 
 | | For | Notes |
 | --- | --- | --- |
 | Node 18 or later | everything | |
-| About 400 MB of disk | everything | Its libraries and a private copy of Chromium go into `.brand-system` in your home folder |
+| About 750 MB of disk | everything | Its libraries go into `.brand-system` in your home folder (50 MB), and a copy of Chromium into Playwright's cache (700 MB) |
 | Python 3.9 or later | the font family | Everything else works without it |
 | ffmpeg | animated logos and moving art | Everything else works without it |
 

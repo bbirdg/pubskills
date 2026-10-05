@@ -26,7 +26,7 @@ if (!options.length) { console.error('no picture or film was found among the opt
 const on = args.on || 'both', sides = on === 'both' ? (tone === 'light' ? ['light', 'dark'] : ['dark', 'light']) : [on];
 const cols = +args.cols || (options.length <= 2 ? options.length : options.length === 4 ? 2 : 3), title = typeof args.title === 'string' ? args.title : 'Options';
 const out = path.resolve(dir, typeof args.out === 'string' ? args.out : path.join('options', 'sheet'));
-const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const letter = i => String.fromCharCode(65 + i % 26) + (i >= 26 ? Math.floor(i / 26) : '');
 // the page sits beside its options, so its links to them are short and it can be sent with them
 const rel = f => path.relative(path.dirname(out), f).replace(/\\/g, '/').split('/').map(encodeURIComponent).join('/');

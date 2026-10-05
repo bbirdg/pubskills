@@ -2,7 +2,9 @@
 // A settings file can be as short as a name, one mark and one colour: the rest has a default, written out here.
 const fs = require('fs'), path = require('path');
 
-const slug = s => String(s).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+// a name as a file name: accents are dropped from letters (Crème gives creme), and anything else that is not a letter or a digit becomes a hyphen
+const slug = s => String(s).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const plain = id => typeof id === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(id);
 const isHex = c => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
 const fail = msg => { throw new Error('brand.json: ' + msg); };
 
@@ -87,7 +89,7 @@ function load(dir, overlays = []) {
 
   const B = { ...raw };
   B.id = raw.id || slug(raw.name);
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(B.id)) fail(`"id" must be lower-case letters, digits and hyphens: ${B.id}`);
+  if (!plain(B.id)) fail(raw.id ? `"id" must be lower-case letters, digits and hyphens: "${B.id}"` : `the name "${raw.name}" has no letters that can go into file names: give the brand an "id" in lower-case Latin letters`);
   const caps = raw.name.replace(/[^A-Z]/g, '');
   B.prefix = raw.prefix || (caps.length >= 2 ? caps.slice(0, 3) : B.id.replace(/-/g, '').slice(0, 2)).toLowerCase();
   if (!/^[a-z][a-z0-9]*$/.test(B.prefix)) fail(`"prefix" starts the names of the CSS variables, so it must be letters and digits: ${B.prefix}`);
@@ -118,13 +120,19 @@ function load(dir, overlays = []) {
   const seen = new Set();
   B.marks = raw.marks.map((m, mi) => {
     const mark = { ...m, id: m.id || (mi === 0 ? B.id : fail(`mark ${mi + 1} needs an "id"`)), kind: m.kind || 'parts', file: m.file || 'mark.svg' };
+    if (!plain(mark.id)) fail(`a mark's "id" names its folder and files, so it must be lower-case letters, digits and hyphens: "${mark.id}"`);
     mark.label = m.label || 'The mark';
     mark.geometry = m.geometry || mark.file.replace(/\.svg$/i, '') + '.json';
+    // the outline is written by the mark step, so it has to stay inside the brand folder (options/ is a fine place for a trial)
+    const written = path.resolve(dir, 'brand', mark.geometry), root = path.resolve(dir) + path.sep;
+    if (!written.startsWith(root) || !/\.json$/i.test(written)) fail(`the mark "${mark.id}" would have its outline written to "${mark.geometry}": it must be a .json file inside the brand folder`);
     if (!Array.isArray(m.brands) || !m.brands.length) fail(`mark "${mark.id}" has no "brands": list at least one, with the word that is written beside the mark`);
     mark.brands = m.brands.map((b, bi) => {
       if (!b.word) fail(`brand ${bi + 1} of mark "${mark.id}" has no "word": the name as it is written in the logo`);
       const desc = b.desc || null, label = b.label || (desc ? `${b.word} ${desc[0].toUpperCase()}${desc.slice(1).toLowerCase()}` : b.word);
       const id = b.id || slug(label);
+      if (!plain(id)) fail(b.id ? `a brand's "id" names its files, so it must be lower-case letters, digits and hyphens: "${id}"` : `the brand "${label}" has no letters that can go into file names: give it an "id" in lower-case Latin letters`);
+      if (b.dir && !plain(b.dir)) fail(`brand "${id}": "dir" names a folder, so it must be lower-case letters, digits and hyphens: "${b.dir}"`);
       if (seen.has(id)) fail(`two brands share the id "${id}": give one of them its own "id"`);
       seen.add(id);
       // a brand takes the first accent unless it names one, or names none with "accent": null
@@ -142,7 +150,8 @@ function load(dir, overlays = []) {
   const t = raw.type || {};
   B.type = {
     wordmark: { font: 'family:ExtraBold', tracking: -0.03, size: 200, cap: 'H', ...(t.wordmark || {}) },
-    descriptor: { font: 'family:SemiBold', tracking: 0.42, scale: 0.32, cap: 'H', ...(t.descriptor || {}) },
+    // where the name is set in a font file of its own, the line under it is too, unless it names another
+    descriptor: { font: t.wordmark && t.wordmark.font && !/^family:/.test(t.wordmark.font) ? t.wordmark.font : 'family:SemiBold', tracking: 0.42, scale: 0.32, cap: 'H', ...(t.descriptor || {}) },
     family: t.family || null,
     weights: { heading: 700, label: 600, body: 500, ...(t.weights || {}) },
     tracking: { hero: '-0.02em', label: '0.14em', ...(t.tracking || {}) },

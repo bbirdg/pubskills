@@ -25,6 +25,9 @@ module.exports = (kind, S) => {
   // loop: what each part does, one after another, and how long each step lasts. It rests as the solid shape, opens
   // into its outline, the outline runs off, it is gone, it is drawn again, and it fills. thin: the outline's width
   const timing = { built, loop: { rest: 0.8, open: 0.8, off: 0.65, gone: 0.1, draw: 0.8, fill: 0.9, thin: 13 * U, ...(M.loop || {}) } };
+  // The loop has to be back at the still logo before it ends: its steps, and the last part's wait, must fit its length
+  const length = M.loopLength || 6, L = timing.loop, cycle = L.rest + L.open + L.off + L.gone + L.draw + L.fill + Math.max(...parts.map(p => p.lag));
+  if (cycle > length) throw new Error(`the loop of the mark "${id}" needs ${+cycle.toFixed(2)} seconds (its steps, and the wait of its last part) and is ${length} seconds long, so it would jump where it repeats. Shorten the steps in "motion.loop" or set "motion.loopLength"`);
   const plain = kind.brands.filter(b => !b.accent);
 
   // The page side: given the harness's tools, it returns how to draw the mark at a time. Runs in the browser.
@@ -105,7 +108,7 @@ module.exports = (kind, S) => {
   }
 
   const built_in = {
-    kind: 'parts', loop: M.loopLength || 6, timing, client,
+    kind: 'parts', loop: length, timing, client,
     // what a logo is drawn in: the accent's stops, the colour of the name's accent, the background of the MP4, and the mark's own colour
     look(logo) {
       const a = logo.accent ? ACCENTS[logo.accent] : null;
@@ -125,6 +128,6 @@ module.exports = (kind, S) => {
   };
   // a brand's own way of moving its mark: a file that gives any of { timing, config, wrap, words, loop, client }
   if (!M.module) return built_in;
-  const own = require(path.resolve(S.dir, 'brand', M.module))(kind, S, built_in);
+  const own = require(S.own(M.module, `the motion of the mark "${id}"`))(kind, S, built_in);
   return { ...built_in, ...own, timing: { ...built_in.timing, ...(own.timing || {}) }, words: { ...built_in.words, ...(own.words || {}) } };
 };

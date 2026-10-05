@@ -70,7 +70,9 @@ It suits marks that are assembled things: facets, blades, petals, letters. Its s
 - For one part: `intro` is the start and the length of its turn in seconds, `lag` is how long after the first part
   it starts in the loop, and `turn` is the line it turns about, as two points in the mark's units. The mark step
   measures a line for each part (its long way across). A part should turn about the edge it would be hinged on.
-- `loop`: how long each step of the loop lasts, in seconds.
+- `loop`: how long each step of the loop lasts, in seconds. The loop itself is 6 seconds (`"loopLength"` changes
+  it). The steps and the last part's `lag` must fit inside it, so that the mark is back at rest before the loop
+  repeats: the step stops and says so if they do not.
 
 ## A motion of the brand's own
 
@@ -101,7 +103,7 @@ module.exports = (kind, S, builtIn) => ({
 How it fits together:
 
 - **`wrap` runs in a browser page, not in Node.** The engine writes its source into the page, so it can see only
-  its two arguments. Anything else it needs (a point, a list, a number) must be put into `c` by `config`, which
+  its two arguments. Write it as `wrap: function (k, base) { }` or as `wrap(k, base) { }`: both work. Anything else it needs (a point, a list, a number) must be put into `c` by `config`, which
   runs in Node and can use `kind.parts` and the rest.
 - **`k`, the tools:** `c` (the settings of this animation), `W` and `H` (the frame), `T` (the timing: `T.built`),
   `LOOP` (true in a loop), `sx` (the canvas to draw on), `lx` (a second canvas for light, laid over with a soft

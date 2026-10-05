@@ -20,7 +20,8 @@ const icos = [];      // { out, from: [paths of pictures made here] }
 const groups = [];    // what the page lists: [{ label, how, items: [{ what, file, note, brand }] }]
 
 // a logo file in the middle of the picture. w: its width, in pixels or as a share of the picture ('70%')
-const center = (rel, w, attr = '') => `<img ${attr}src="${url(rel)}" style="position:absolute;width:${typeof w === 'number' ? w + 'px' : w};left:50%;top:50%;transform:translate(-50%,-50%)">`;
+// rel: a path under the output folder, or a whole address (a drawing made on the spot, as a data address)
+const center = (rel, w, attr = '') => `<img ${attr}src="${/^data:/.test(rel) ? rel : url(rel)}" style="position:absolute;width:${typeof w === 'number' ? w + 'px' : w};left:50%;top:50%;transform:translate(-50%,-50%)">`;
 // The mark's line art laid behind a picture, so that the point `spot` of the mark (in the mark's own units) sits at
 // `at`. No line may run behind a logo or words: they sit at the mark's inside point, the one furthest from every
 // line. Whatever carries data-clear is measured against the lines when the picture is made: a logo file brings its
@@ -48,22 +49,26 @@ function senderLogo(m, title, desc) {
   // sized like a profile picture: a square or tall mark is made smaller, so that it stays inside the circle a mail app cuts
   const [bx, by, bw, bh] = m.bounds, size = 900, k = (m.fit ? m.fit(size, 0.62) : size * 0.62) / bw, x = (size - bw * k) / 2 - bx * k, y = (size - bh * k) / 2 - by * k;
   const fit = d => d.replace(/(-?\d*\.?\d+) (-?\d*\.?\d+)/g, (s, a, b) => `${r(a * k + x)} ${r(b * k + y)}`);
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">\n  <title>${title}</title>\n  <desc>${desc || `The ${title} logo: the mark in ${light ? 'black on white' : 'white on black'}`}</desc>\n  <rect width="${size}" height="${size}" fill="${SURFACE}"/>\n  <path fill="${light ? INK : WHITE}" d="${m.flat().map(fit).join('')}"/>\n</svg>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">\n  <title>${S.xml(title)}</title>\n  <desc>${S.xml(desc || `The ${title} logo: the mark in ${light ? 'black on white' : 'white on black'}`)}</desc>\n  <rect width="${size}" height="${size}" fill="${SURFACE}"/>\n  <path fill="${light ? INK : WHITE}" d="${m.flat().map(fit).join('')}"/>\n</svg>\n`;
 }
 
-const once = new Set();
+const once = new Set(), taken = new Map();
 for (const entry of B.rollout) {
   const p = PLATFORMS[entry.platform];
   if (!p) throw new Error(`"rollout" names the place "${entry.platform}", which is not in platforms.json or under "platforms" in brand.json. Known: ${Object.keys(PLATFORMS).filter(k => k !== 'comment').join(', ')}`);
   const b = entry.brand ? S.brands.find(x => x.id === entry.brand) : S.brands[0];
   if (!b) throw new Error(`"rollout" names the brand "${entry.brand}", which no mark has`);
   const m = b.mark, handle = entry.handle || b.id, folder = `rollout/${entry.folder || p.folder || entry.platform}`;
+  if (/[\\/]|\.\./.test(handle) || /\\|\.\./.test(folder)) throw new Error(`"rollout": the handle "${handle}" and the folder "${folder}" go into file names, so they cannot hold a slash or ".."`);
   const fill = t => t.replace(/\{handle\}/g, handle).replace(/\{at\}/g, '@' + handle).replace(/\{brand\}/g, b.label).replace(/\{id\}/g, b.id).replace(/\{mark\}/g, m.id);
   const label = entry.label || p.label, group = groups.find(g => g.label === label) || groups[groups.push({ label, how: entry.how || p.how || '', items: [] }) - 1];
   for (const item of p.items) {
     if (entry.only && !entry.only.includes(item.id)) continue;
     const out = `${folder}/${fill(item.file)}`;
     if (item.once) { if (once.has(out)) continue; once.add(out); }
+    // two entries that would write one file: the second would quietly replace the first
+    else if (taken.has(out)) throw new Error(`"rollout": the place "${entry.platform}" is listed for ${taken.get(out)} and for ${b.label}, and both would write ${out}. Give one entry a "folder" of its own, for example "folder": "${entry.platform}-${b.id}"`);
+    taken.set(out, b.label);
     if (item.svg) { const s = source(fill(item.svg), b); svgs.push({ src: s.svg || fs.readFileSync(path.join(OUT, s.file), 'utf8'), out, width: item.width }); }
     else if (item.banner) jobs.push({ out, w: item.banner[0], h: item.banner[1], bg: SURFACE, lock: entry.lock && entry.lock[item.id] || item.lock, make: lockW => banner(m, b, item.banner[0], item.banner[1], lockW) });
     else if (item.picture) {
@@ -71,7 +76,8 @@ for (const entry of B.rollout) {
       // a width may be pixels, a share of the picture, or 'fit:0.6': that share of the widest the mark can be in the picture.
       // A size given for the mark alone is for its longer side, so a tall mark stands as high as a wide one would be wide
       const width = (name, v) => typeof v === 'string' && v.startsWith('fit:') ? r(Math.min(w, h * m.aspect) * v.slice(4)) : /^(mark|tight)/.test(name) && m.aspect < 1 ? r((typeof v === 'string' ? w * parseFloat(v) / 100 : v) * m.aspect) : v;
-      const html = (item.fill ? `<div style="position:absolute;inset:0;background:${item.fill}"></div>` : '') + (item.place || []).map(([name, v, more]) => center(source(fill(name), b).file, width(name, v), more && more.clear ? CLEAR : '')).join('');
+      const placed = name => { const s = source(fill(name), b); return s.file || `data:image/svg+xml;base64,${Buffer.from(s.svg).toString('base64')}`; };
+      const html = (item.fill ? `<div style="position:absolute;inset:0;background:${String(item.fill).replace(/"/g, '&quot;')}"></div>` : '') + (item.place || []).map(([name, v, more]) => center(placed(name), width(name, v), more && more.clear ? CLEAR : '')).join('');
       jobs.push({ out, w, h, bg, make: () => html });
     }
     else if (item.text) texts[out] = item.text === 'sender' ? senderLogo(m, fill(item.title || B.name), item.desc && fill(item.desc)) : item.text.startsWith('cropped:') ? m.cropped(item.text.slice(8)) : (() => { throw new Error(`unknown text file "${item.text}" in the place "${entry.platform}"`); })();

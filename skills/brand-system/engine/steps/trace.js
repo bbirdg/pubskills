@@ -181,6 +181,7 @@ function fit(pts) {
   });
   if (!parts.length) throw new Error('no shape was found in the picture');
   parts.sort((a, b) => b.area - a.area);
+  fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">\n  <!-- Traced from ${path.basename(src)}. A faithful outline, not a finished mark: clean it, name its parts (id) and mark the accent (class="accent"). -->\n${parts.map((p, i) => `  <path id="part-${i + 1}" fill="${p.fill}" d="${p.d}"/>`).join('\n')}\n</svg>\n`);
   console.log(`${path.basename(src)} (${pic.iw} x ${pic.ih}), ${clear ? 'on nothing' : 'on ' + hex(bg)}: ${colours.length} colour${colours.length > 1 ? 's' : ''} (${colours.map(c => hex(c.c)).join(', ')}), ${parts.length} shape${parts.length > 1 ? 's' : ''}`);
   parts.forEach((p, i) => console.log(`  part-${i + 1}  ${p.fill}  ${p.nodes} points${p.holes ? `, ${p.holes} hole${p.holes > 1 ? 's' : ''}` : ''}  ${(p.area / N * 100).toFixed(1)}% of the picture`));

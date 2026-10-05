@@ -1,5 +1,5 @@
 {
-  "comment": "The settings of {{name}}. This is the one file the engine is told from: change it, then run the step that reads it. Every key that is left out takes its default. What each key means is in the skill's rules/settings.md, and example/brand/brand.json is a finished one.",
+  "comment": "The settings of {{name}}. This is the one file the engine is told from: change it, then run the step that reads it. Every key that is left out takes its default. What each key means is in the skill's rules/settings.md, and example/brand/brand.json is a finished one. Before the logos can be made, the name needs a font: add \"type\" with a \"family\" to build, or a \"wordmark\" font file (rules/colour-type.md).",
 
   "name": "{{name}}",
   "url": "",

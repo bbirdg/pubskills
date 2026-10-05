@@ -18,14 +18,22 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.cu2quPen import Cu2QuPen
 from fontTools.pens.boundsPen import BoundsPen
 
+# the plan that glyphs.js wrote: in the brand folder's .build, or in the output folder's when --out names one.
+# The arguments are read the way the other steps read them: --out folder or --out=folder, --with file or --with=file
 def plan_file(argv):
-    args = [a for a in argv if not a.startswith('--')]
-    out = argv[argv.index('--out') + 1] if '--out' in argv else None
-    if out: args = [a for a in args if a != out]
-    for flag in ('--with',):
-        if flag in argv: args = [a for a in args if a != argv[argv.index(flag) + 1]]
+    out, args, i = None, [], 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ('--out', '--with'):
+            if a == '--out' and i + 1 < len(argv): out = argv[i + 1]
+            i += 2; continue
+        if a.startswith('--out='): out = a[6:]
+        elif not a.startswith('--'): args.append(a)
+        i += 1
     if not args: sys.exit('give the brand folder: the one that holds brand/brand.json')
-    return os.path.join(os.path.abspath(out), '.build', 'font-plan.json') if out else os.path.join(os.path.abspath(args[0]), '.build', 'font-plan.json')
+    plan = os.path.join(os.path.abspath(out), '.build', 'font-plan.json') if out else os.path.join(os.path.abspath(args[0]), '.build', 'font-plan.json')
+    if not os.path.exists(plan): sys.exit(f'fonts: the plan for the family is not there ({plan}). This file runs after glyphs.js, which writes it: use `node run.js fonts <brand folder>`')
+    return plan
 
 with open(plan_file(sys.argv[1:]), encoding='utf-8') as fh: PLAN = json.load(fh)
 OUT = PLAN['out']

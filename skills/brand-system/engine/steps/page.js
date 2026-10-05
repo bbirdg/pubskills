@@ -13,7 +13,7 @@ const FONT = S.read('fonts'), ART = S.read('art'), MOTION = S.read('motion'), AR
 
 const has = f => !!f && fs.existsSync(path.join(OUT, f));
 const size = f => has(f) ? fs.statSync(path.join(OUT, f)).size : 0;
-const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const cr = (a, b) => contrast(a, b).toFixed(1) + ':1';
 const img = (src, alt, cls = '', extra = '') => `<img src="${src}" alt="${esc(alt)}"${cls ? ` class="${cls}"` : ''} ${extra}>`;
 const tile = (tone, inner, cap, cls = '') => `<figure class="tile-wrap ${cls}"><div class="tile ${tone}">${inner}</div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
@@ -276,8 +276,8 @@ function markView(m) {
 }
 
 // ---------------------------------------------------------------- start
-const svgCount = S.marks.reduce((n, m) => n + (fs.existsSync(path.join(OUT, `logos/${m.id}/svg`)) ? fs.readdirSync(path.join(OUT, `logos/${m.id}/svg`), { recursive: true }).filter(f => String(f).endsWith('.svg')).length : 0), 0);
-const pngCount = S.marks.reduce((n, m) => n + (fs.existsSync(path.join(OUT, `logos/${m.id}/png`)) ? fs.readdirSync(path.join(OUT, `logos/${m.id}/png`), { recursive: true }).filter(f => String(f).endsWith('.png')).length : 0), 0);
+const count = (d, ext) => fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? count(path.join(d, e.name), ext) : e.name.endsWith(ext) ? 1 : 0), 0) : 0;
+const svgCount = S.marks.reduce((n, m) => n + count(path.join(OUT, `logos/${m.id}/svg`), '.svg'), 0), pngCount = S.marks.reduce((n, m) => n + count(path.join(OUT, `logos/${m.id}/png`), '.png'), 0);
 const start = view('start', 'Start', `
   <div class="hero">
     <div>

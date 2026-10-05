@@ -8,16 +8,27 @@ function parse(argv) {
   const a = { dir: null, rest: [], with: [], out: null };
   for (let i = 0; i < argv.length; i++) {
     const v = argv[i];
+    // --with file and --with=file both work, and so do --out folder and --out=folder
     if (v === '--with') a.with.push(argv[++i]);
+    else if (v.startsWith('--with=')) a.with.push(v.slice(7));
     else if (v === '--out') a.out = argv[++i];
-    else if (v.startsWith('--')) { const [k, val] = v.slice(2).split('='); a[k] = val === undefined ? true : val; }
+    else if (v.startsWith('--')) { const at = v.indexOf('='), k = at < 0 ? v.slice(2) : v.slice(2, at); a[k] = at < 0 ? true : v.slice(at + 1); }
     else if (!a.dir) a.dir = v;
     else a.rest.push(v);
   }
   return a;
 }
 
+// A step that cannot go on says why in one plain line and stops: wrong settings are the commonest reason, and a
+// stack of the engine's own lines helps nobody. BRAND_SYSTEM_DEBUG=1 shows the whole error.
+if (!process.env.BRAND_SYSTEM_DEBUG) for (const kind of ['uncaughtException', 'unhandledRejection']) process.on(kind, e => { console.error(e && e.message ? e.message : String(e)); process.exit(1); });
 function open(argv = process.argv.slice(2)) {
+  if (process.env.BRAND_SYSTEM_DEBUG) return build(argv);
+  try { return build(argv); } catch (e) { console.error(e.message); process.exit(1); }
+}
+const inside = (root, file) => path.resolve(file) === path.resolve(root) || path.resolve(file).startsWith(path.resolve(root) + path.sep);
+
+function build(argv) {
   const args = parse(argv);
   if (!args.dir) throw new Error('give the brand folder: the one that holds brand/brand.json');
   const dir = path.resolve(args.dir), B = brand.load(dir, args.with.map(f => path.resolve(f)));
@@ -109,12 +120,16 @@ function open(argv = process.argv.slice(2)) {
   const note = name => path.join(BUILD, name + '.json');
   const read = name => fs.existsSync(note(name)) ? JSON.parse(fs.readFileSync(note(name), 'utf8')) : null;
   const save = (name, data) => { fs.mkdirSync(BUILD, { recursive: true }); fs.writeFileSync(note(name), JSON.stringify(data, null, 1) + '\n'); };
-  const put = (rel, data) => { const f = path.join(OUT, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, data); };
+  // nothing is written outside the output folder, whatever a name in the settings says
+  const put = (rel, data) => { const f = path.resolve(OUT, rel); if (!inside(OUT, f)) throw new Error(`"${rel}" would be written outside ${OUT}: a name in the settings holds ".." or a full path`); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, data); };
+  // a file of the brand's own that the engine runs (a kind of mark, a motion, more characters) must be in the brand folder
+  const own = (file, what) => { const f = path.resolve(dir, 'brand', file); if (!inside(dir, f)) throw new Error(`${what} names the file "${file}", which is outside the brand folder. The engine only runs code that is inside it`); if (!fs.existsSync(f)) throw new Error(`${what} names the file "${file}", which is not in the brand folder's brand/`); return f; };
+  const xml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
   let count = 0;
   const S = {
     args, dir, OUT, BUILD, brand: B, INK, WHITE, ACCENTS, NEUTRALS, PAPER, SEMANTIC, r, stopsSvg, pathData, FONTS, outline, glyphs, svgDoc, lockupLayout, lockups,
-    contrast: brand.contrast, SIZE, WORD_TRACK, read, save, put, uid: () => count++,
+    contrast: brand.contrast, SIZE, WORD_TRACK, read, save, put, own, xml, inside, uid: () => count++,
     // no line of a background may come nearer to a logo, to words or to a clear area than this share of the picture's width
     CLEARANCE: 0.02,
     get CAP() { return cap(); },
@@ -122,10 +137,10 @@ function open(argv = process.argv.slice(2)) {
     art: () => require('./artkit')(S),
   };
   // each mark is drawn by its kind: the built-in one for a flat mark made of parts, or a module of the brand's own
-  S.marks = B.marks.map(def => (def.kind === 'parts' ? require('./kinds/parts') : require(path.resolve(dir, 'brand', def.kind)))(def, S));
+  S.marks = B.marks.map(def => (def.kind === 'parts' ? require('./kinds/parts') : require(own(def.kind, `the mark "${def.id}"`)))(def, S));
   S.mark = id => S.marks.find(m => m.id === id);
   S.brands = S.marks.flatMap(m => m.brands.map(b => ({ ...b, mark: m })));
   return S;
 }
 
-module.exports = { open, parse };
+module.exports = { open, parse, inside };

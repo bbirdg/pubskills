@@ -43,7 +43,7 @@ module.exports = (def, S) => {
 
   // one mark that can be put straight into a page: its colours come from CSS variables (the body, three accent stops)
   const first = Object.values(ACCENTS)[0];
-  const themeable = () => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${r(bx)} ${r(by)} ${r(bw)} ${r(bh)}" role="img" aria-label="${B.name}">` +
+  const themeable = () => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${r(bx)} ${r(by)} ${r(bw)} ${r(bh)}" role="img" aria-label="${S.xml(B.name)}">` +
     `<defs><linearGradient id="${B.prefix}-${PAINT}" gradientUnits="userSpaceOnUse" ${AXIS_ATTR}>` +
     (first ? first.stops : [WHITE, WHITE, WHITE]).map((c, i) => `<stop offset="${i / 2}" style="stop-color:var(--${B.prefix}-accent-${i + 1}, ${c})"/>`).join('') +
     `</linearGradient></defs>${order.map(p => p.accent ? `<path fill="url(#${B.prefix}-${PAINT})"${rule(p)} d="${p.d}"/>` : `<path style="fill:var(--${B.prefix}-body, currentColor)"${rule(p)} d="${p.d}"/>`).join('')}</svg>\n`;

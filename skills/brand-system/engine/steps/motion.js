@@ -185,9 +185,11 @@ function client(c, makeMark, wrap) {
   window.seek(0);
 }
 
+// a function as it is written into the page. One written as a method ("wrap(k, base) { }") is given its keyword back
+const source = f => { const s = f.toString(); return /^(async\s+)?function\b|^\(|^[A-Za-z_$][\w$]*\s*=>/.test(s) ? s : 'function ' + s; };
 function sceneHtml(logo, variant, W, H) {
   const c = config(logo, variant, W, H);
-  return `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}canvas{display:block}</style></head><body><canvas id="view" width="${W}" height="${H}"></canvas><script>(${client.toString()})(${JSON.stringify(c)}, ${logo.kind.motion.client.toString()}, ${logo.kind.motion.wrap ? logo.kind.motion.wrap.toString() : 'null'})</script></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}canvas{display:block}</style></head><body><canvas id="view" width="${W}" height="${H}"></canvas><script>(${client.toString()})(${JSON.stringify(c)}, ${source(logo.kind.motion.client)}, ${logo.kind.motion.wrap ? source(logo.kind.motion.wrap) : 'null'})</script></body></html>`;
 }
 // when a logo is complete, in seconds from the start of its intro
 function doneAt(logo) {
@@ -218,17 +220,19 @@ async function render(browser, job, root) {
     '-map', '[p]', '-c:v', 'prores_ks', '-profile:v', '4444', '-qscale:v', '8', '-alpha_bits', '8', '-vendor', 'apl0', ...tags, path.join(clear, job.name + '.mov'),
     '-map', '[v]', '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '24', '-auto-alt-ref', '0', '-row-mt', '1', '-deadline', 'good', '-cpu-used', '4', ...tags, path.join(clear, job.name + '.webm')];
   const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS), '-i', '-', '-loop', '1', '-framerate', String(FPS), '-i', bg, '-filter_complex', graph, ...outs], { stdio: ['pipe', 'inherit', 'inherit'] });
-  const done = new Promise((res, rej) => { ff.on('error', () => rej(new Error('ffmpeg did not start: it is needed for moving pictures (see `node run.js doctor`)'))); ff.on('close', code => code === 0 ? res() : rej(new Error(`ffmpeg exited ${code}`))); });
+  let stopped = false;
+  const done = new Promise((res, rej) => { ff.on('error', () => rej(new Error('ffmpeg did not start: it is needed for moving pictures (see `node run.js doctor`)'))); ff.on('close', code => { stopped = true; code === 0 ? res() : rej(new Error(`ffmpeg stopped with code ${code} while writing ${job.name}: its message is above. A build of ffmpeg without the H.264, ProRes or VP9 encoders cannot write these files`)); }); });
+  ff.stdin.on('error', () => {});      // ffmpeg stopping early closes its pipe: the reason comes from its exit, above
+  done.catch(() => {});
   const frames = Math.round(duration * FPS);
   let key = null, shot = null, drawn = 0;
-  for (let i = 0; i < frames; i++) {
+  for (let i = 0; i < frames && !stopped; i++) {
     const k = await page.evaluate(t => window.seek(t), i / FPS);
     if (k !== key) { shot = await page.screenshot({ type: 'png', omitBackground: true }); key = k; drawn++; }
-    if (!ff.stdin.write(shot)) await new Promise(res => ff.stdin.once('drain', res));
+    if (!ff.stdin.write(shot)) await Promise.race([new Promise(res => ff.stdin.once('drain', res)), done.catch(() => {})]);
   }
   ff.stdin.end();
-  await done;
-  fs.unlinkSync(bg);
+  try { await done; } finally { if (fs.existsSync(bg)) fs.unlinkSync(bg); }
   if (errors.length) throw new Error(`${job.name}: ${errors[0]}`);
   // the poster: the finished logo (an intro's last frame, a loop's first)
   fs.writeFileSync(mp4.replace(/\.mp4$/, '.png'), png(await page.evaluate(t => window.still(t), variant === 'loop' ? 0 : duration)));

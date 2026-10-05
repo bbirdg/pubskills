@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // The one way into the engine. It keeps the libraries the steps need outside this folder (in ~/.brand-system, or
-// where BRAND_SYSTEM_HOME points), so the engine itself can be installed, updated or copied without them.
+// where the environment variable BRAND_SYSTEM_HOME points), so the engine itself can be installed, updated or
+// copied without them. BRAND_SYSTEM_DEBUG=1 makes a step that fails show its whole error.
 //   node run.js setup                      install what the steps need, once for each computer
 //   node run.js doctor                     say what is installed and what is missing, and change nothing
 //   node run.js init <brand folder>        start a brand folder: brand/brand.json and the folders round it
@@ -51,10 +52,12 @@ function state() {
   const lib = n => { try { return JSON.parse(fs.readFileSync(path.join(MODULES, n, 'package.json'), 'utf8')).version; } catch (e) { return null; } };
   const libs = Object.fromEntries(Object.keys(PKG.dependencies).map(n => [n, lib(n)]));
   const fonttools = py ? quiet(py.cmd, [...py.pre, '-c', 'import fontTools, brotli; print(fontTools.version)'], { env: env() }) : null;
-  const ff = quiet('ffmpeg', ['-version']), probe = quiet('ffprobe', ['-version']);
+  const ff = quiet('ffmpeg', ['-version']), probe = quiet('ffprobe', ['-version']), enc = ff.status === 0 ? quiet('ffmpeg', ['-hide_banner', '-encoders']) : null;
+  // the films are written as H.264, ProRes and VP9: a build of ffmpeg without one of them cannot make them
+  const lacks = enc && enc.status === 0 ? [['libx264', 'H.264'], ['prores_ks', 'ProRes'], ['libvpx-vp9', 'VP9']].filter(([e]) => !new RegExp('\\b' + e + '\\b').test(enc.stdout)).map(x => x[1]) : [];
   let chromium = null;
   if (libs.playwright) { const out = quiet(process.execPath, ['-e', 'const f=require("playwright").chromium.executablePath();console.log(require("fs").existsSync(f)?f:"")'], { env: env() }); chromium = out.status === 0 && first(out) ? first(out) : null; }
-  return { node, nodeOk: +node.split('.')[0] >= 18, libs, libsOk: Object.entries(PKG.dependencies).every(([n, v]) => libs[n] === v), chromium, python: py, fonttools: fonttools && fonttools.status === 0 ? first(fonttools) : null, ffmpeg: ff.status === 0 ? first(ff).replace(/ Copyright.*/, '') : null, ffprobe: probe.status === 0 };
+  return { node, nodeOk: +node.split('.')[0] >= 18, libs, libsOk: Object.entries(PKG.dependencies).every(([n, v]) => libs[n] === v), chromium, python: py, fonttools: fonttools && fonttools.status === 0 ? first(fonttools) : null, ffmpeg: ff.status === 0 ? first(ff).replace(/ Copyright.*/, '') : null, ffprobe: probe.status === 0, lacks };
 }
 function report(s) {
   const row = (ok, name, text) => say(`  ${ok ? 'ok     ' : 'MISSING'}  ${name.padEnd(12)} ${text}`);
@@ -64,9 +67,9 @@ function report(s) {
   row(!!s.chromium, 'chromium', s.chromium ? 'installed' : 'every step that makes a picture needs it');
   row(!!s.python, 'python', s.python ? `${s.python.version} (${s.python.cmd})` : 'only the fonts step needs it: Python 3.9 or later');
   row(!!s.fonttools, 'fonttools', s.fonttools || 'only the fonts step needs it (with brotli)');
-  row(!!s.ffmpeg && s.ffprobe, 'ffmpeg', s.ffmpeg || 'only the motion and art-motion steps need it. Install: ' + (WIN ? 'winget install Gyan.FFmpeg' : process.platform === 'darwin' ? 'brew install ffmpeg' : 'sudo apt install ffmpeg'));
+  row(!!s.ffmpeg && s.ffprobe && !s.lacks.length, 'ffmpeg', s.ffmpeg ? (s.lacks.length ? `${s.ffmpeg}, but it cannot write ${s.lacks.join(' or ')}: install a full build` : s.ffmpeg) : 'only the motion and art-motion steps need it. Install: ' + (WIN ? 'winget install Gyan.FFmpeg' : process.platform === 'darwin' ? 'brew install ffmpeg' : 'sudo apt install ffmpeg'));
   const still = s.nodeOk && s.libsOk && s.chromium;
-  say(still ? `ready: logos, masters, rollout, art, page, check${s.fonttools ? ', fonts' : ''}${s.ffmpeg ? ', motion, art-motion' : ''}` : 'not ready: run `node run.js setup`');
+  say(still ? `ready: logos, masters, rollout, art, page, check${s.fonttools ? ', fonts' : ''}${s.ffmpeg && !s.lacks.length ? ', motion, art-motion' : ''}` : 'not ready: run `node run.js setup`');
   return still;
 }
 
@@ -76,7 +79,7 @@ function setup() {
   fs.writeFileSync(path.join(HOME, 'package.json'), JSON.stringify({ name: 'brand-system-home', private: true, description: 'Libraries for the brand-system engine. Safe to delete: `node run.js setup` puts them back.', dependencies: PKG.dependencies }, null, 2) + '\n');
   say(`1/3  the engine's libraries, into ${HOME}`);
   if (sh('npm', ['install', '--no-audit', '--no-fund', '--loglevel=error'], { cwd: HOME, shell: WIN }).status !== 0) { say('npm install failed: see the message above'); return 1; }
-  say('2/3  Chromium, the browser that draws the pictures (about 150 MB the first time)');
+  say('2/3  Chromium, the browser that draws the pictures (a download of a few hundred MB the first time, about 700 MB on disk)');
   if (sh(process.execPath, [path.join(MODULES, 'playwright', 'cli.js'), 'install', 'chromium'], { cwd: HOME }).status !== 0) { say('Chromium did not install: see the message above'); return 1; }
   say('3/3  the font tools, for the fonts step');
   const py = python();
@@ -99,7 +102,9 @@ function init(args) {
   for (const [from, to] of [['brand.json', 'brand/brand.json'], ['notes.md', 'brand/notes.md']]) {
     const f = path.join(root, to);
     if (fs.existsSync(f)) continue;
-    fs.writeFileSync(f, fs.readFileSync(path.join(HERE, '..', 'templates', from), 'utf8').replace(/\{\{name\}\}/g, name).replace(/\{\{date\}\}/g, new Date().toISOString().slice(0, 10)));
+    // in the settings the name sits inside quotes, so a quote or a backslash in it is written the way JSON asks
+    const shown = from.endsWith('.json') ? JSON.stringify(name).slice(1, -1) : name;
+    fs.writeFileSync(f, fs.readFileSync(path.join(HERE, '..', 'templates', from), 'utf8').replace(/\{\{name\}\}/g, () => shown).replace(/\{\{date\}\}/g, new Date().toISOString().slice(0, 10)));
     made.push(to);
   }
   say(`${root}\n  brand/     the settings (brand.json), the mark (mark.svg) and the notes: the only place to change things\n  concept/   what you start from: the logo as it is, references\n  options/   choices laid side by side for a decision, removed once it is made\n  final/     everything the engine makes\n${made.length ? 'written: ' + made.join(', ') : 'nothing was overwritten'}`);
@@ -121,7 +126,9 @@ function all(args) {
   // the moving steps are slow, so each is asked for by name: --motion for the animated logos, --art-motion for the art as loops
   const moving = ['motion', 'art-motion'].filter(s => args.includes('--' + s)), rest = args.filter(a => a !== '--motion' && a !== '--art-motion'), dir = rest.find(a => !a.startsWith('--'));
   if (!dir) { say('usage: node run.js all <brand folder> [--motion] [--art-motion]'); return 1; }
-  const settings = JSON.parse(fs.readFileSync(path.join(dir, 'brand', 'brand.json'), 'utf8'));
+  let settings;
+  try { settings = JSON.parse(fs.readFileSync(path.join(dir, 'brand', 'brand.json'), 'utf8')); }
+  catch (e) { say(e.code === 'ENOENT' ? `no settings at ${path.join(path.resolve(dir), 'brand', 'brand.json')}. Start a brand folder with: node run.js init <folder>` : `brand.json is not valid JSON (${e.message})`); return 1; }
   // the checks run before the page, which shows what they found, and the page itself is tested once it is written
   const todo = [...STILL.filter(s => s !== 'fonts' || (settings.type && settings.type.family)), ...moving, ['check', '--skip=page'], 'page', ['check', '--only=page']];
   for (const item of todo) { const [s, ...more] = [].concat(item); say(`\n== ${[s, ...more].join(' ')}`); const code = step(s, [...rest, ...more]); if (code) { say(`stopped at ${s}`); return code; } }

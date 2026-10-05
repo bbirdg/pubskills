@@ -6,9 +6,13 @@ One file tells the engine everything. A key that is left out takes its default, 
 {
   "name": "Kitewell",
   "colours": { "accents": { "breeze": ["#12B5CB", "#7CF0C4"] } },
+  "type": { "wordmark": { "font": "fonts/Some-Bold.ttf" } },
   "marks": [{ "brands": [{ "word": "Kitewell" }] }]
 }
 ```
+
+The one thing with no default is the font the name is set in. Give `type.wordmark.font` a font file, as here, or
+give the brand a `type.family` and run the fonts step first.
 
 `example/brand/brand.json` is a full one. The engine reads the file fresh on every run and says what is wrong
 with it in plain words. Unknown keys are ignored, so a `"comment"` is fine anywhere.
@@ -18,7 +22,7 @@ with it in plain words. Unknown keys are ignored, so a `"comment"` is fine anywh
 | Key | Default | What it is |
 | --- | --- | --- |
 | `name` | required | The brand's name, as written |
-| `id` | from the name | Lower-case letters, digits and hyphens. It names the token files and the first mark |
+| `id` | from the name | Lower-case letters, digits and hyphens. It names the token files and the first mark. A name in another alphabet needs an `id` written out |
 | `prefix` | from the name | Starts the names of the CSS variables: `--ki-accent`. Two or three letters |
 | `url` | none | The brand's address. It goes into the fonts' own information |
 | `tone` | `"dark"` | `"dark"` or `"light"`: the surface the brand is at home on |
@@ -47,7 +51,7 @@ An accent, under a key of lower-case letters and digits:
 | `onLight` | `solid`, deepened | The flat version for use on white |
 | `onAccent` | whichever reads | `"ink"` or `"white"`: text on the solid accent |
 
-The first accent is the one in use by default. `black`, `white` and `color` cannot be accent keys.
+The first accent is the one in use by default. `black`, `white`, `color` and `colour` cannot be accent keys.
 
 ## `marks`
 
@@ -58,6 +62,8 @@ A list. Each mark:
 | `id` | the brand's id, for the first | Names its folder and files. Required from the second mark on |
 | `label` | `"The mark"` | What the page calls it: "The kite" |
 | `file` | `"mark.svg"` | Its drawing, in `brand/` |
+| `geometry` | the file's name, as `.json` | Where the mark step writes the outline. Inside the brand folder |
+| `turn` | measured | `{ "part id": [x1, y1, x2, y2] }`: the line a part turns about in the built-in intro |
 | `kind` | `"parts"` | The built-in flat mark, or the path of a file in `brand/` that draws a mark of its own |
 | `brands` | required | Who wears it. See below |
 | `accentParts` | from the drawing | The ids of the parts that take the colour |
@@ -92,7 +98,7 @@ A brand, under a mark:
 | Key | Default | What it is |
 | --- | --- | --- |
 | `wordmark` | `{ "font": "family:ExtraBold", "tracking": -0.03, "size": 200, "cap": "H" }` | The name beside the mark. `font` is a weight of the brand's family, or a font file in `brand/` |
-| `descriptor` | `{ "font": "family:SemiBold", "tracking": 0.42, "scale": 0.32, "cap": "H" }` | The line under the name |
+| `descriptor` | `{ "font": "family:SemiBold", "tracking": 0.42, "scale": 0.32, "cap": "H" }` | The line under the name. Where the name has a font file of its own, this takes the same file unless it names another |
 | `family` | none | The brand's own font family. See below |
 | `weights` | `{ "heading": 700, "label": 600, "body": 500 }` | Which weight does what |
 | `tracking` | `{ "hero": "-0.02em", "label": "0.14em" }` | Letter spacing of titles and labels |
@@ -130,4 +136,20 @@ A source's `script` is `latin` for the first, then `arabic`, `hebrew`, `greek`, 
 `--with file.json` lays a file over `brand.json` for one run. Objects are merged key by key. A list of objects
 (the marks, a mark's brands) is merged item by item, so `{ "marks": [{ "file": "../options/mark/b.svg" }] }`
 changes only the first mark's drawing. Any other list is replaced whole. With `--out folder` the files go
-somewhere else, and nothing in `final/` is touched.
+somewhere else, and nothing in `final/` is touched. Both can be written with a space or with an equals sign
+(`--out folder`, `--out=folder`).
+
+## What the engine will not do with a settings file
+
+- Write outside the output folder, or outside the brand folder for the mark's outline. A name with `..` in it
+  stops the run.
+- Run code from outside the brand folder. A mark's `kind`, a `motion.module` and a font `own` module are files the
+  engine runs, and they must be in `brand/`.
+
+## Outside the settings
+
+- `BRAND_SYSTEM_HOME`: an environment variable that moves the engine's libraries from `.brand-system` in the home
+  folder to somewhere else.
+- `BRAND_SYSTEM_DEBUG=1`: makes a step that fails show its whole error, not one line.
+- `run check <folder> --only=page` tests one thing, and `--skip=motion,page` leaves things out. The names are
+  `logos`, `colour`, `rollout`, `art`, `fonts`, `motion` and `page`.

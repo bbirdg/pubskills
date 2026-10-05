@@ -79,13 +79,17 @@ A step that fails says why in plain words and what to change. Read the message b
   final/        everything the engine makes. Never edit by hand: change brand/ and run the step again
 ```
 
+A brand folder can hold code that the engine runs: a `motion.js`, or a file named under a mark's `kind`. You write
+those yourself when a brand needs them. If you are handed a brand folder that someone else made, read those files
+before you run any step in it, as you would with any project.
+
 ## The procedure
 
 ### 0. Set up
 
-Run `run doctor`. If it says it is not ready, tell the person in two sentences what `run setup` will install (the
-engine's libraries and a private copy of the Chromium browser, about 400 MB, in a `.brand-system` folder in their
-home folder) and run it. Python is needed only for fonts and ffmpeg only for moving pictures: if one is missing, say
+Run `run doctor`. If it says it is not ready, tell the person in two sentences what `run setup` will install and
+run it: the engine's libraries (about 50 MB, in a `.brand-system` folder in their home folder) and a copy of the
+Chromium browser that only this kind of tool uses (about 700 MB, in Playwright's own cache folder). Python is needed only for fonts and ffmpeg only for moving pictures: if one is missing, say
 which steps will be skipped and give the install command `doctor` prints. Do not install system software unasked.
 
 ### 1. Kickoff. Nothing is drawn before this

@@ -75,16 +75,18 @@ async function render(browser, x, OUT) {
   const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS), '-i', '-', '-loop', '1', '-framerate', String(FPS), '-i', bg, '-filter_complex', graph,
     '-map', '[m]', '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', ...tags, '-movflags', '+faststart', mp4,
     '-map', '[v]', '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '26', '-auto-alt-ref', '0', '-row-mt', '1', '-deadline', 'good', '-cpu-used', '4', ...tags, webm], { stdio: ['pipe', 'inherit', 'inherit'] });
-  const done = new Promise((res, rej) => { ff.on('error', () => rej(new Error('ffmpeg did not start: it is needed for moving pictures (see `node run.js doctor`)'))); ff.on('close', code => code === 0 ? res() : rej(new Error(`ffmpeg exited ${code}`))); });
+  let stopped = false;
+  const done = new Promise((res, rej) => { ff.on('error', () => rej(new Error('ffmpeg did not start: it is needed for moving pictures (see `node run.js doctor`)'))); ff.on('close', code => { stopped = true; code === 0 ? res() : rej(new Error(`ffmpeg stopped with code ${code} while writing ${x.name}: its message is above. A build of ffmpeg without the H.264 or VP9 encoders cannot write these files`)); }); });
+  ff.stdin.on('error', () => {});      // ffmpeg stopping early closes its pipe: the reason comes from its exit, above
+  done.catch(() => {});
   const frames = LOOP * FPS;
-  for (let i = 0; i < frames; i++) {
+  for (let i = 0; i < frames && !stopped; i++) {
     await page.evaluate(t => window.seek(t), i / FPS);
     const shot = await page.screenshot({ type: 'png', omitBackground: true });
-    if (!ff.stdin.write(shot)) await new Promise(res => ff.stdin.once('drain', res));
+    if (!ff.stdin.write(shot)) await Promise.race([new Promise(res => ff.stdin.once('drain', res)), done.catch(() => {})]);
   }
   ff.stdin.end();
-  await done;
-  fs.unlinkSync(bg);
+  try { await done; } finally { if (fs.existsSync(bg)) fs.unlinkSync(bg); }
   await page.close();
   if (errors.length) throw new Error(`${x.name}: ${errors[0]}`);
   return mp4;

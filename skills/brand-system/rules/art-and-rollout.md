@@ -47,9 +47,24 @@ its size, under plain names in `final/rollout/<place>/`.
 
 Built in: `youtube`, `tiktok`, `instagram`, `facebook`, `discord`, `telegram`, `whatsapp`, `twitch`, `x`,
 `linkedin`, `github`, `web` (favicons, touch icon, share picture), `email` (logo, header strip, sender logo),
-`shopify`, `app` (store icons and Android layers) and `video` (the mark cut tight for editors). Each entry takes a
-`handle`, which goes into file names, and the `brand` whose logo it wears. `"only": ["profile"]` makes part of it.
-`"steps": [{ "what": "...", "note": "..." }]` adds things a person does by hand, with no file.
+`shopify`, `app` (store icons and Android layers) and `video` (the mark cut tight for editors).
+
+An entry can have:
+
+| Key | What it is |
+| --- | --- |
+| `platform` | Which place, from the list above or from the brand's own `platforms` |
+| `brand` | The id of the brand whose logo it wears. Left out, the first brand |
+| `handle` | The account's name. It goes into file names and into the page's words |
+| `folder` | The folder under `final/rollout/`. Left out, the platform's name |
+| `only` | `["profile"]`: make only these items of the place |
+| `label`, `how` | What the page calls the place, and a line on how its files get there |
+| `lock` | `{ "banner": 800 }`: how wide the lockup may be in one banner, in pixels |
+| `steps` | `[{ "what": "...", "note": "..." }]`: things a person does by hand, with no file |
+
+**Two brands in one place need two folders.** The files of `web`, `email`, `shopify`, `app` and `video` have fixed
+names, so a second brand there would replace the first. The step stops and says so. Give one entry a folder of its
+own: `{ "platform": "web", "brand": "kitewell-workshop", "folder": "web-workshop" }`.
 
 Things to know:
 
@@ -76,8 +91,10 @@ Things to know:
   An item is one of: `"svg"` (a logo file drawn at a `width`), `"banner"` (a size, and how wide the lockup may be),
   `"picture"` (a size, a background, and logo files placed on it), `"text"` (`"cropped:white"`, `"cropped:black"`
   or `"sender"`) or `"ico"` (pictures gathered into one `.ico`). What can be placed: `avatar`, `lockup`, `stacked`,
-  `mark`, `icon`, `favicon`, each optionally with `-light`, `-dark`, `-white`, `-black` or `-flat`, or the path of
-  any logo file under `final/`. `engine/platforms.json` shows every form in use.
+  `mark`, `icon`, `favicon`, `tight`, each optionally with `-light`, `-dark`, `-white`, `-black` or `-flat`, or the
+  path of any logo file under `final/`. In a file name or in the words, `{handle}` is the handle, `{at}` the handle
+  with an @ before it, `{brand}` the brand's name, `{id}` its id and `{mark}` its mark's id.
+  `engine/platforms.json` shows every form in use.
 
 **None of this is uploaded.** The kit is files. See the rule on going live.
 

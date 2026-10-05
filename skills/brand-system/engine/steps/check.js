@@ -137,7 +137,8 @@ const say = (id, title, ok, text, detail = []) => results.push({ id, title, ok, 
         for (const j of film.jobs().filter(j => j.variant === 'loop' && j.W === j.H)) {
           const page = await br.newPage({ viewport: { width: j.W, height: j.H }, deviceScaleFactor: 1 });
           await page.setContent(film.sceneHtml(j.logo, j.variant, j.W, j.H));
-          const same = await page.evaluate(() => window.still(0) === window.still(window.scene.duration));
+          // the built-in loop rests before it ends, so its last frame is the still logo; a kind of the brand's own is asked for the same frame a whole loop later
+          const same = await page.evaluate(([last, fps]) => window.still(0) === window.still(last ? window.scene.duration - 1 / fps : window.scene.duration), [j.logo.kind.motion.kind === 'parts', M.fps]);
           if (!same) bad.push(`${j.name}: the loop does not end on the frame it starts on`); else loops++;
           await page.close();
         }
