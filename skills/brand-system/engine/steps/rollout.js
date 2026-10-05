@@ -31,7 +31,8 @@ function behind(m, w, accent, spot, at, opts = {}) {
   return `<div class="lines" style="position:absolute;inset:0"><div style="position:absolute;left:${r(at[0] - (spot[0] - bx) * k)}px;top:${r(at[1] - (spot[1] - by) * k)}px">${m.lineArt(w, accent, opts)}</div></div>`;
 }
 // A banner: the line art across the whole picture, the lockup in the middle of the mark's roomiest place.
-const banner = (m, b, W, H, lockW) => behind(m, W * m.scale.wide, b.accent, m.inside, [W / 2, H / 2], { width: Math.max(2, W / 640) }) + center(source('lockup', b).file, lockW, CLEAR);
+// A mark with no roomy place inside (or a kind with no line art) gets a plain banner: the lockup on the brand's surface.
+const banner = (m, b, W, H, lockW) => (m.lineArt && m.roomy !== false ? behind(m, W * m.scale.wide, b.accent, m.inside, [W / 2, H / 2], { width: Math.max(2, W / 640) }) : '') + center(source('lockup', b).file, lockW, CLEAR);
 
 // what an item asks for by name: one of the brand's logo files, or a path under the output folder
 function source(name, b) {

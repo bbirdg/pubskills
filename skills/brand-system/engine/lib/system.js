@@ -118,6 +118,8 @@ function open(argv = process.argv.slice(2)) {
     // no line of a background may come nearer to a logo, to words or to a clear area than this share of the picture's width
     CLEARANCE: 0.02,
     get CAP() { return cap(); },
+    // what background art is drawn with, for a kind of mark that a brand writes itself
+    art: () => require('./artkit')(S),
   };
   // each mark is drawn by its kind: the built-in one for a flat mark made of parts, or a module of the brand's own
   S.marks = B.marks.map(def => (def.kind === 'parts' ? require('./kinds/parts') : require(path.resolve(dir, 'brand', def.kind)))(def, S));

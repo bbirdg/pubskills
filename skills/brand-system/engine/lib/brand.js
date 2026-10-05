@@ -97,7 +97,8 @@ function load(dir, overlays = []) {
   const c = raw.colours || raw.colors || {};
   const ink = c.ink || '#0C0C0E', white = c.white || '#FFFFFF';
   for (const [k, v] of Object.entries({ ink, white, ...c.neutrals, ...c.paper, ...c.semantic })) if (!isHex(v)) fail(`colour "${k}" is not a six-digit hex colour: ${v}`);
-  B.colours = { ink: ink.toUpperCase(), white: white.toUpperCase() };
+  // deep: a shade darker than ink, for the far edge of a soft light on a dark picture
+  B.colours = { ink: ink.toUpperCase(), white: white.toUpperCase(), deep: c.deep || (ink.toUpperCase() === '#0C0C0E' ? '#050506' : mix(ink, '#000000', 0.55)) };
   B.colours.neutrals = { ink: B.colours.ink, ...NEUTRALS, ...(c.neutrals || {}), paper: B.colours.white };
   B.colours.paper = { ...PAPER, ...(c.paper || {}) };
   B.colours.semantic = { ...SEMANTIC, ...(c.semantic || {}) };

@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "The engine behind the brand-system skill: it draws a brand's logo files, colours, fonts, background art, animated logos, upload kit and design system page from one settings file. Run it through run.js, which keeps its libraries outside this folder: `node run.js setup` once, then `node run.js <step> <brand folder>`.",
-  "license": "MIT",
+  "license": "Apache-2.0",
+  "author": { "name": "bbirdg", "url": "https://github.com/bbirdg" },
+  "homepage": "https://github.com/bbirdg/pubskills",
   "engines": { "node": ">=18" },
   "dependencies": {
     "opentype.js": "2.0.0",
