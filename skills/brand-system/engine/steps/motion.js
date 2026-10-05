@@ -47,7 +47,7 @@ function config(logo, variant, W, H) {
     const L = S.lockupLayout(aspect, logo.word, logo.desc, logo.tail), a = W > H ? L.horizontal : L.stacked, p = L.pad, tb = L.tb;
     const k = size.lock / (a.w - 2 * p), ox = (W - (a.w - 2 * p) * k) / 2 - p * k, oy = (H - (a.h - 2 * p) * k) / 2 - p * k;
     const [mx, my, mw] = a.mark, [tx, ty, align] = a.text;
-    c.rest = { cx: ox + (mx + mw / 2) * k, cy: oy + (my + mw / aspect / 2) * k, w: mw * k }; c.zoom = size.solo / c.rest.w;
+    c.rest = { cx: ox + (mx + mw / 2) * k, cy: oy + (my + mw / aspect / 2) * k, w: mw * k }; c.zoom = Math.max(1, size.solo / c.rest.w);      // the view never starts further away than it ends
     const letters = S.glyphs(S.FONTS.word, logo.word, S.SIZE, S.WORD_TRACK);
     c.text = { k, ox, oy, letters, accent: logo.tail ? letters.map((_, i) => i >= letters.length - logo.tail) : [], fill: look.solid, at: tb.wordAt(tx, ty), rise: S.CAP * 1.4, clip: [tx - 40, ty - S.CAP * 0.5, tb.word.w + 80, S.CAP * 1.55] };
     if (tb.desc) c.text.desc = { d: tb.desc.d, at: tb.descAt(tx, ty, align), rise: tb.descCap * 0.7 };

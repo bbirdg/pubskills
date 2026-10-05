@@ -66,6 +66,8 @@ const PRESETS = [
 
 // ---------------------------------------------------------------- type
 const fam = B.type.family, stem = fam ? fam.name.replace(/ /g, '') : '', HERO = FONT && FONT.display;
+// what the dots of the title font have become: a square on its corner is a diamond
+const DOTS = !HERO ? '' : HERO.lean === 0 ? 'diamonds' : HERO.lean === 45 ? 'squares' : 'leaning squares', DOT = !HERO ? '' : HERO.lean === 0 ? 'a diamond: a square standing on a corner' : HERO.lean === 45 ? 'an upright square' : `a square that leans ${HERO.lean} degrees`;
 const built = FONT ? FONT.weights.filter(([, s]) => has(`fonts/${stem}-${s}.woff2`)) : [];
 const fontCss = built.map(([w, s]) => `@font-face{font-family:"${fam.name}";src:url("fonts/${stem}-${s}.woff2") format("woff2");font-weight:${w};font-display:swap}`).join('')
   + (HERO && has(`fonts/${HERO.file}.woff2`) ? `@font-face{font-family:"${HERO.family}";src:url("fonts/${HERO.file}.woff2") format("woff2");font-weight:${HERO.weight};font-display:swap}` : '');
@@ -346,7 +348,7 @@ const typeView = !built.length ? view('type', 'Type', `
     ${jump([['type-pair', HERO ? 'The pairing' : 'The scale'], HERO && ['type-hero', HERO.family], ['type-now', fam.name], OWNCH.length && ['type-own', 'The brand\'s own characters'], ['type-files', 'Font files']])}
   </header>
   <h2 id="type-pair">${HERO ? 'The pairing' : 'The scale'}</h2>
-  <p>${HERO ? 'One line leads and the rest support it. The hero font is for that one line: a title, the words on a thumbnail, a page\'s headline. The general font does all the reading. They share their letters, so they always sit well together: the hero font is the heaviest weight of the general one with its dots turned into leaning squares.' : 'One line leads and the rest support it: the heaviest weight for the title, a bold for headings, spaced capitals for labels and a medium weight for reading.'}</p>
+  <p>${HERO ? 'One line leads and the rest support it. The hero font is for that one line: a title, the words on a thumbnail, a page\'s headline. The general font does all the reading. They share their letters, so they always sit well together: the hero font is the heaviest weight of the general one with its dots turned into ' + DOTS + '.' : 'One line leads and the rest support it: the heaviest weight for the title, a bold for headings, spaced capitals for labels and a medium weight for reading.'}</p>
   <div class="mt">
     <div class="spec"><div class="meta">Hero<br>${HERO ? `${HERO.family}<br>${HERO.weight}, tight` : `${fam.name}<br>${built[built.length - 1][0]}, tight`}</div><div class="t-hero">${WORDS.latin.d}</div>${second('t-hero', 'd')}</div>
     <div class="spec"><div class="meta">Heading<br>${fam.name} ${B.type.weights.heading}</div><div class="t-heading">${WORDS.latin.h}</div>${second('t-heading', 'h')}</div>
@@ -361,11 +363,11 @@ const typeView = !built.length ? view('type', 'Type', `
   ].filter(Boolean), true)}
   ${HERO ? `
   <h2 id="type-hero">${HERO.family}</h2>
-  <p>${HERO.from} with one change: every dot is a square that leans ${HERO.lean} degrees.</p>
+  <p>${HERO.from} with one change: every dot is ${DOT}.</p>
   <div class="tile surface herospec mt"><div class="t-hero">Join in: big wins, live!</div>${second('t-hero', 'd')}</div>
   <div class="grid g2 mt">
     ${tile('surface', `<div class="heropair" style="font-weight:${HERO.weight}"><span>Join: fix it!</span></div>`, `${HERO.from}: round dots`)}
-    ${tile('surface', `<div class="heropair t-hero"><span>Join: fix it!</span></div>`, `${HERO.family}: leaning squares`)}
+    ${tile('surface', `<div class="heropair t-hero"><span>Join: fix it!</span></div>`, `${HERO.family}: ${DOTS}`)}
   </div>
   ${facts([
     `<b>What changes:</b> the dots of the letters, of the punctuation and of the accents, and the bullet. ${HERO.dots} dots are drawn once and show in ${HERO.glyphs} letters and signs.`,

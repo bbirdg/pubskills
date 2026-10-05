@@ -38,6 +38,7 @@
     {
       "label": "The kite",
       "file": "mark.svg",
+      "motion": { "module": "motion.js" },
       "about": {
         "lead": "Four facets and a tail. The same outline at every size and in every colour version.",
         "facts": [

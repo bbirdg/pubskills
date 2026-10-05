@@ -34,10 +34,11 @@ Sixty frames a second, no sound. Every frame is drawn from the time alone, so a 
 It takes about 10 seconds for each animation, and a brand with two colours has two dozen. **Render one first:**
 
 ```bash
-run motion <folder> intro-1080x1080
+run motion <folder> kitewell-intro-1080x1080
 ```
 
-The word after the folder picks the files whose names hold it. Look at the result (open the MP4, or read the PNG
+The word after the folder picks the animations whose names hold it. A name is the brand's id, then `intro` or
+`loop`, then the size (`kitewell-intro-1080x1080`). The mark alone is `<mark id>-<accent>-mark-...`. Look at the result (open the MP4, or read the PNG
 poster and a frame or two), and only render the whole set when the motion is approved. Say how long it will take.
 
 ## The built-in motion

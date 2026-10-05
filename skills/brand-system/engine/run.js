@@ -5,7 +5,7 @@
 //   node run.js doctor                     say what is installed and what is missing, and change nothing
 //   node run.js init <brand folder>        start a brand folder: brand/brand.json and the folders round it
 //   node run.js <step> <brand folder> ...  run one step (the list is under `node run.js help`)
-//   node run.js all <brand folder>         every still step in order; add --motion for the moving ones too
+//   node run.js all <brand folder>         every still step in order; --motion adds the animated logos, --art-motion the moving art
 //   node run.js discard <brand folder> ... move options that were not chosen to the computer's bin
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawnSync } = require('child_process');
@@ -30,7 +30,7 @@ const STEPS = {
   check: { run: [['node', 'steps/check.js']], what: 'test what was made: sizes, contrast, clear areas, links, loops' },
   sheet: { run: [['node', 'steps/sheet.js']], what: 'lay options side by side on one page, for a decision' },
 };
-const STILL = ['mark', 'fonts', 'logos', 'masters', 'rollout', 'art'], MOVING = ['motion', 'art-motion'];
+const STILL = ['mark', 'fonts', 'logos', 'masters', 'rollout', 'art'];
 
 const say = s => process.stdout.write(s + '\n');
 const sh = (cmd, args, opts = {}) => spawnSync(cmd, args, { stdio: 'inherit', ...opts });
@@ -118,11 +118,12 @@ function step(name, args) {
 }
 
 function all(args) {
-  const moving = args.includes('--motion'), rest = args.filter(a => a !== '--motion'), dir = rest.find(a => !a.startsWith('--'));
-  if (!dir) { say('usage: node run.js all <brand folder> [--motion]'); return 1; }
+  // the moving steps are slow, so each is asked for by name: --motion for the animated logos, --art-motion for the art as loops
+  const moving = ['motion', 'art-motion'].filter(s => args.includes('--' + s)), rest = args.filter(a => a !== '--motion' && a !== '--art-motion'), dir = rest.find(a => !a.startsWith('--'));
+  if (!dir) { say('usage: node run.js all <brand folder> [--motion] [--art-motion]'); return 1; }
   const settings = JSON.parse(fs.readFileSync(path.join(dir, 'brand', 'brand.json'), 'utf8'));
   // the checks run before the page, which shows what they found, and the page itself is tested once it is written
-  const todo = [...STILL.filter(s => s !== 'fonts' || (settings.type && settings.type.family)), ...(moving ? MOVING : []), ['check', '--skip=page'], 'page', ['check', '--only=page']];
+  const todo = [...STILL.filter(s => s !== 'fonts' || (settings.type && settings.type.family)), ...moving, ['check', '--skip=page'], 'page', ['check', '--only=page']];
   for (const item of todo) { const [s, ...more] = [].concat(item); say(`\n== ${[s, ...more].join(' ')}`); const code = step(s, [...rest, ...more]); if (code) { say(`stopped at ${s}`); return code; } }
   return 0;
 }
@@ -160,7 +161,7 @@ else if (cmd === 'discard') code = discard(args);
 else if (cmd === 'version') say(PKG.version);
 else if (STEPS[cmd]) code = step(cmd, args);
 else {
-  say('usage: node run.js <command> [brand folder] [options]\n\n  setup        install what the steps need, once for each computer\n  doctor       say what is installed and what is missing\n  init         start a brand folder\n  all          every still step in order, then the checks and the page (--motion adds the moving steps)\n  discard      move options that were not chosen to the recycle bin\n');
+  say('usage: node run.js <command> [brand folder] [options]\n\n  setup        install what the steps need, once for each computer\n  doctor       say what is installed and what is missing\n  init         start a brand folder\n  all          every still step in order, then the checks and the page (--motion adds the animated logos, --art-motion the moving art)\n  discard      move options that were not chosen to the recycle bin\n');
   for (const [n, s] of Object.entries(STEPS)) say(`  ${n.padEnd(12)} ${s.what}`);
   say('\nAfter the brand folder, most steps take a word that picks a few files (for example `art <folder> outline`),\n--out <folder> to write somewhere else, and --with <file.json> to lay other settings over brand.json for a trial.');
   code = cmd && cmd !== 'help' ? 1 : 0;

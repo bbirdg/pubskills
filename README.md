@@ -47,6 +47,9 @@ As a Claude Code plugin:
 /plugin install brand-system@pubskills
 ```
 
+If the first line stops with a message about SSH or a host key, give the full address instead:
+`/plugin marketplace add https://github.com/bbirdg/pubskills.git`
+
 Or with the skills CLI, for Claude Code and other agents:
 
 ```bash
@@ -65,7 +68,11 @@ your computer and installs what it needs.
 | Python 3.9 or later | the font family | Everything else works without it |
 | ffmpeg | animated logos and moving art | Everything else works without it |
 
-Built and tested on Windows 11. macOS and Linux should work and have not been tried yet.
+Built and tested on Windows 11. macOS and Linux should work and have not been tried yet. On Linux, Chromium may ask
+for system libraries: `npx playwright install-deps chromium` installs them.
+
+A brand folder can hold code of its own (a mark that moves in its own way is a small script). The engine runs
+it, so build only brand folders you trust, as you would with any project.
 
 ### Try the example
 
@@ -77,7 +84,7 @@ node engine/run.js all example
 ```
 
 That builds Kitewell in about half a minute. Open `example/final/review.html`. Add `--motion` to render its
-animations too, which takes about ten minutes.
+animated logos too, which takes about five minutes.
 
 ### What it does not do
 

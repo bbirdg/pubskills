@@ -62,7 +62,7 @@ const css = [
 const tokens = {
   color: { neutral: S.NEUTRALS, paper: S.PAPER, semantic: S.SEMANTIC, accent: ACCENTS },
   type: {
-    ...(hero ? { hero: { family: `${hero.family} (SIL OFL 1.1), for titles: ${hero.from} with its dots as squares leaning ${hero.lean} degrees`, files: `fonts/${hero.file}.ttf and .woff2` } } : {}),
+    ...(hero ? { hero: { family: `${hero.family} (SIL OFL 1.1), for titles: ${hero.from} with its dots as ${hero.lean === 0 ? 'diamonds' : hero.lean === 45 ? 'upright squares' : `squares leaning ${hero.lean} degrees`}`, files: `fonts/${hero.file}.ttf and .woff2` } } : {}),
     ...(FONT ? { general: { family: `${fam.name} (SIL OFL 1.1), ${scripts.length > 1 ? `one family for ${both}, built from ${FONT.sources.map(s => `${s.name} (${s.script[0].toUpperCase() + s.script.slice(1)})`).join(' and ')}` : `built from ${FONT.sources[0].name}`}`, files: `fonts/${fam.name.replace(/ /g, '')}-<Weight>.ttf and .woff2` } } : {}),
     weights: { ...(hero ? { hero: hero.weight } : {}), ...B.type.weights }, tracking: B.type.tracking,
   },

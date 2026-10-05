@@ -51,10 +51,14 @@ function read() {
 
 (async () => {
   const browser = await launch();
-  const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+  // A drawing can come from anywhere, so the page that reads it runs none of the drawing's own scripts and loads nothing from the network
+  const context = await browser.newContext({ viewport: { width: 1200, height: 900 }, javaScriptEnabled: false }), page = await context.newPage();
+  await page.route('**/*', route => route.abort());
   const made = [];
   for (const def of B.marks.filter(m => m.kind === 'parts')) {
     const file = path.join(dir, 'brand', def.file), warn = [];
+    // a mark that comes with its outline already written, and no drawing, is used as it is
+    if (!fs.existsSync(file) && fs.existsSync(path.join(dir, 'brand', def.geometry))) { console.log(`${def.id}: no drawing at brand/${def.file}, so brand/${def.geometry} is used as it is`); continue; }
     if (!fs.existsSync(file)) throw new Error(`the mark's drawing is not there: brand/${def.file}. Draw it as an SVG, one filled shape for each part, or start from a picture with the trace step`);
     await page.setContent(`<!doctype html><html><body style="margin:0">${fs.readFileSync(file, 'utf8').replace(/<\?xml[^>]*\?>|<!DOCTYPE[^>]*>/gi, '')}</body></html>`);
     const got = await page.evaluate(read);

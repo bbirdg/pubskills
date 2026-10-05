@@ -53,7 +53,7 @@ holds this file instead. Below, `run` stands for `node "<that folder>/engine/run
 | `run art-motion <folder>` | The art as loops (needs ffmpeg) | 30 to 60 seconds for each loop |
 | `run check <folder>` | Tests what was made and says what it found | 30 seconds |
 | `run page <folder>` | Writes `final/review.html` | instant |
-| `run all <folder>` | Every still step in order, then checks and page. `--motion` adds the moving ones | the sum |
+| `run all <folder>` | Every still step in order, then checks and page. `--motion` adds the animated logos, `--art-motion` the moving art | the sum |
 | `run sheet <folder> <options...>` | Lays options side by side on one page | 5 seconds |
 | `run discard <folder> <path in options/>` | Moves options that were not chosen to the recycle bin | instant |
 
@@ -133,7 +133,8 @@ and open `final/review.html` in a browser if you can. Fix what is wrong. Only th
 
 Read [rules/motion.md](rules/motion.md) first.
 
-Render one animated logo with a filter (`run motion <folder> intro-1080x1080`) and look at it. Decide whether the
+Render one animated logo by naming it (`run motion <folder> <brand id>-intro-1080x1080`) and look at it: open the
+MP4, or cut a few frames from it with ffmpeg and read them. Decide whether the
 built-in motion suits what the mark shows. If the mark shows a thing that moves in its own way, write that motion in
 `brand/motion.js`. Show the person, get a yes, and only then render the whole set: say first how many animations
 that is and how long it will take.

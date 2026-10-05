@@ -199,6 +199,9 @@ def brand(font):
 # the lean too (the Arabic zero, where a typeface draws it as a square).
 D = PLAN['display'] or {}
 HERO, CUT, LEAN, SHARE, ROOM, ALSO = D.get('name'), D.get('cut'), D.get('lean'), D.get('share'), D.get('room'), D.get('also', [])
+# what the dots become, in words: a square on its corner is a diamond
+DOTS = 'diamonds' if LEAN == 0 else 'squares' if LEAN == 45 else 'leaning squares'
+DOT = 'a diamond, which is a square standing on a corner' if LEAN == 0 else 'an upright square' if LEAN == 45 else f'a square that leans {LEAN} degrees to the right'
 
 EM = 1                               # the font's units to a thousandth of its em: distances below are in thousandths
 class Tracer(BasePen):               # a contour as points: about 6 thousandths apart along straight edges, 8 to a curve
@@ -319,7 +322,7 @@ def build():
         report.append(f"{style:<11} {weight}  glyphs {' + '.join(str(n) for n in counts)} + {nb} = {len(font.getGlyphOrder())}  characters {len(cmap)}  ttf {os.path.getsize(base + '.ttf') // 1024} KB  woff2 {os.path.getsize(base + '.woff2') // 1024} KB")
         if HERO and style == CUT:
             font = TTFont(base + '.ttf'); c = hero(font)
-            names(font, style, credits, HERO, f'The {BRAND} hero typeface for titles, {FAMILY} {CUT} with its dots as leaning squares')
+            names(font, style, credits, HERO, f'The {BRAND} hero typeface for titles, {FAMILY} {CUT} with its dots as {DOTS}')
             file = f"{HERO.replace(' ', '')}-{style}"; base = os.path.join(OUT, file)
             font.save(base + '.ttf'); font.flavor = 'woff2'; font.save(base + '.woff2')
             report.append(f"{HERO} {style}: {c['dots']} dots in {c['drawn']} drawn glyphs, seen in {c['glyphs']} glyphs. Least room round a square {c['room']} units "
@@ -352,7 +355,7 @@ def build():
             for g in own: fh.write(f"  {code(g):<18}{g['what']}\n")
             if private: fh.write(f"  {'The marks have' if len(private) > 1 else 'The mark has'} no place in Unicode, so {'they sit' if len(private) > 1 else 'it sits'} in its private use area: text that uses {'them' if len(private) > 1 else 'it'} needs this font.\n")
         if HERO:
-            fh.write(f"What {HERO} is\n  {FAMILY} {CUT} with every round dot turned into a square that leans {LEAN} degrees to the right: the dots of the\n  letters, of the punctuation and of the accents, and the bullet. Each square holds {SHARE} of its dot's area and keeps\n  its middle. Nothing else is changed, so a line sets exactly as wide as in {FAMILY} {CUT}, and the brand's own\n  characters are all there. It is for titles: from about 24 px up, never for running text.\n")
+            fh.write(f"What {HERO} is\n  {FAMILY} {CUT} with every round dot turned into {DOT}: the dots of the\n  letters, of the punctuation and of the accents, and the bullet. Each square holds {SHARE} of its dot's area and keeps\n  its middle. Nothing else is changed, so a line sets exactly as wide as in {FAMILY} {CUT}, and the brand's own\n  characters are all there. It is for titles: from about 24 px up, never for running text.\n")
         fh.write(f"\nLicence\n  {'Every source is' if len(credits) > 1 else 'The source is'} under the SIL Open Font License 1.1, so this family is too: it may be used, embedded, changed and\n  shared freely, but not sold on its own. The licence {'files' if len(licences) > 1 else 'file'} next to this note must travel with the fonts.\n")
         fh.write('\nRebuild: node run.js fonts <brand folder>   (needs Python with fonttools and brotli)\n')
     # what the other steps and the page read back
