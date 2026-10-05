@@ -47,7 +47,13 @@ its size, under plain names in `final/rollout/<place>/`.
 
 Built in: `youtube`, `tiktok`, `instagram`, `facebook`, `discord`, `telegram`, `whatsapp`, `twitch`, `x`,
 `linkedin`, `github`, `web` (favicons, touch icon, share picture), `email` (logo, header strip, sender logo),
-`shopify`, `app` (store icons and Android layers) and `video` (the mark cut tight for editors).
+`shopify`, `app` (store icons and Android layers), `video` (the mark cut tight for editors) and `profile`.
+
+**`profile` is for anywhere else.** A brand always meets a place that is not on the list: a forum, a new app, a
+partner's page. Give every brand one `{ "platform": "profile", "brand": "<id>" }` entry and it gets its profile
+picture six ways, as PNG and as SVG, in `final/rollout/profile/`: square on dark and on light (the ones to
+upload), the same two already cut to a circle (for a website, a signature, an overlay), and two with nothing
+behind the mark (for dark and for light surfaces, where the person chooses the background).
 
 An entry can have:
 
@@ -88,11 +94,13 @@ Things to know:
   }
   ```
 
-  An item is one of: `"svg"` (a logo file drawn at a `width`), `"banner"` (a size, and how wide the lockup may be),
+  An item is one of: `"svg"` (a logo file drawn at a `width`), `"copy"` (the same drawing kept as an SVG file),
+  `"banner"` (a size, and how wide the lockup may be),
   `"picture"` (a size, a background, and logo files placed on it), `"text"` (`"cropped:white"`, `"cropped:black"`
   or `"sender"`) or `"ico"` (pictures gathered into one `.ico`). What can be placed: `avatar`, `lockup`, `stacked`,
-  `mark`, `icon`, `favicon`, `tight`, each optionally with `-light`, `-dark`, `-white`, `-black` or `-flat`, or the
-  path of any logo file under `final/`. In a file name or in the words, `{handle}` is the handle, `{at}` the handle
+  `mark`, `icon`, `favicon`, `tight`, `clear` (the profile picture with nothing behind it), each optionally with
+  `-light`, `-dark`, `-white`, `-black` or `-flat`, or the path of any logo file under `final/`. `"round": true`
+  on an `svg` or a `copy` cuts the drawing to a circle. In a file name or in the words, `{handle}` is the handle, `{at}` the handle
   with an @ before it, `{brand}` the brand's name, `{id}` its id and `{mark}` its mark's id.
   `engine/platforms.json` shows every form in use.
 

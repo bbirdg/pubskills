@@ -52,6 +52,8 @@ function senderLogo(m, title, desc) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">\n  <title>${S.xml(title)}</title>\n  <desc>${S.xml(desc || `The ${title} logo: the mark in ${light ? 'black on white' : 'white on black'}`)}</desc>\n  <rect width="${size}" height="${size}" fill="${SURFACE}"/>\n  <path fill="${light ? INK : WHITE}" d="${m.flat().map(fit).join('')}"/>\n</svg>\n`;
 }
 
+// a drawing cut to a circle, with nothing outside it
+const rounded = svg => { const [, , w, h] = svg.match(/viewBox="([^"]+)"/)[1].split(' ').map(Number); return svg.replace(/^([\s\S]*?<svg[^>]*>)([\s\S]*)(<\/svg>\s*)$/, (m, a, inner, z) => `${a}<defs><clipPath id="round"><circle cx="${r(w / 2)}" cy="${r(h / 2)}" r="${r(Math.min(w, h) / 2)}"/></clipPath></defs><g clip-path="url(#round)">${inner}</g>${z}`); };
 const once = new Set(), taken = new Map();
 for (const entry of B.rollout) {
   const p = PLATFORMS[entry.platform];
@@ -69,7 +71,11 @@ for (const entry of B.rollout) {
     // two entries that would write one file: the second would quietly replace the first
     else if (taken.has(out)) throw new Error(`"rollout": the place "${entry.platform}" is listed for ${taken.get(out)} and for ${b.label}, and both would write ${out}. Give one entry a "folder" of its own, for example "folder": "${entry.platform}-${b.id}"`);
     taken.set(out, b.label);
-    if (item.svg) { const s = source(fill(item.svg), b); svgs.push({ src: s.svg || fs.readFileSync(path.join(OUT, s.file), 'utf8'), out, width: item.width }); }
+    // "svg": a logo file drawn at a width. "copy": the same drawing kept as an SVG file. "round": cut to a circle first
+    if (item.svg || item.copy) {
+      const s = source(fill(item.svg || item.copy), b), text = s.svg || fs.readFileSync(path.join(OUT, s.file), 'utf8'), drawing = item.round ? rounded(text) : text;
+      if (item.svg) svgs.push({ src: drawing, out, width: item.width }); else texts[out] = drawing;
+    }
     else if (item.banner) jobs.push({ out, w: item.banner[0], h: item.banner[1], bg: SURFACE, lock: entry.lock && entry.lock[item.id] || item.lock, make: lockW => banner(m, b, item.banner[0], item.banner[1], lockW) });
     else if (item.picture) {
       const [w, h] = item.picture, bg = item.bg === undefined || item.bg === 'surface' ? SURFACE : item.bg === 'ink' ? INK : item.bg === 'white' ? WHITE : item.bg;
@@ -82,7 +88,7 @@ for (const entry of B.rollout) {
     }
     else if (item.text) texts[out] = item.text === 'sender' ? senderLogo(m, fill(item.title || B.name), item.desc && fill(item.desc)) : item.text.startsWith('cropped:') ? m.cropped(item.text.slice(8)) : (() => { throw new Error(`unknown text file "${item.text}" in the place "${entry.platform}"`); })();
     else if (item.ico) icos.push({ out, from: item.ico.map(f => `${folder}/${fill(f)}`) });
-    else throw new Error(`the item "${item.id}" of the place "${entry.platform}" says nothing to make: give it "svg", "banner", "picture", "text" or "ico"`);
+    else throw new Error(`the item "${item.id}" of the place "${entry.platform}" says nothing to make: give it "svg", "copy", "banner", "picture", "text" or "ico"`);
     if (!item.quiet) group.items.push({ what: fill(item.what || item.id), file: out, note: fill(item.note || ''), brand: b.id, kind: item.banner ? 'banner' : item.svg === 'avatar' ? 'avatar' : 'file', safe: item.safe });
   }
   // steps a person does by hand, with no file: [{ what, note }]

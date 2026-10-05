@@ -54,9 +54,12 @@ module.exports = (def, S) => {
   const fit = (q, share) => q * Math.min(share, share / 0.70 * 0.86 / Math.hypot(1, 1 / aspect));
   const W = 1000, H = W / aspect;
   const tight = s => S.svgDoc(W, H, draw(s, 0, 0, W));
+  // a square with the mark in the middle of it, safe inside a circle: the icons and the profile pictures.
+  // nudge: a mark that looks too high in a circle is moved down
+  const Q = 1024, NUDGE = Q * (def.nudge || 0);
+  const square = (s, share, bg, dy = 0) => { const mw = fit(Q, share), mh = mw / aspect; return S.svgDoc(Q, Q, draw(s, (Q - mw) / 2, (Q - mh) / 2 + dy, mw), bg); };
   function stills({ add, raw, png }) {
-    const PAD = W * 0.04, Q = 1024, dy = Q * (def.nudge || 0);      // nudge: a mark that looks too high in a circle is moved down
-    const square = (s, share, bg, dy = 0) => { const mw = fit(Q, share), mh = mw / aspect; return S.svgDoc(Q, Q, draw(s, (Q - mw) / 2, (Q - mh) / 2 + dy, mw), bg); };
+    const PAD = W * 0.04, dy = NUDGE;
     for (const [name, s] of Object.entries(schemes)) {
       add(`mark/${id}-mark-${name}.svg`, S.svgDoc(W + PAD * 2, H + PAD * 2, draw(s, PAD, PAD, W)), 2400);
       add(`icon/${id}-icon-${name}.svg`, square(s, 0.70), 1024);
@@ -95,8 +98,10 @@ module.exports = (def, S) => {
     const a = b && b.accent, dark = a ? `${a}-on-dark` : 'white', pale = a ? `${a}-on-light` : 'black', own = light ? pale : dark;
     const lock = (layout, s) => ({ file: `${base}/${b.dir}/${b.id}-${layout}-${s}.svg` });
     const tone = { '': own, '-dark': dark, '-light': pale, '-white': 'white', '-black': 'black', '-flat': light ? 'black' : 'white' };
-    const [, what, t] = name.match(/^(avatar|lockup|stacked|mark|icon|tight|favicon)(-dark|-light|-white|-black|-flat|)$/) || [];
+    const [, what, t] = name.match(/^(avatar|clear|lockup|stacked|mark|icon|tight|favicon)(-dark|-light|-white|-black|-flat|)$/) || [];
     if (!what) return null;
+    // clear: the profile picture with nothing behind it. The mark sits exactly where it sits in the profile picture
+    if (what === 'clear') return { svg: square(schemes[tone[t]], 0.70, null, NUDGE) };
     if (what === 'avatar') { const av = t === '-flat' ? (light ? 'black' : 'white') : t === '-light' || (!t && light) ? (a ? `${a}-light` : 'black') : t === '-white' ? 'white' : t === '-black' ? 'black' : (a ? `${a}-dark` : 'white'); return { file: `${base}/avatar/${id}-avatar-${av}.svg` }; }
     if (what === 'lockup') return lock('horizontal', tone[t]);
     if (what === 'stacked') return lock('stacked', tone[t]);

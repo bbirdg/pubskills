@@ -246,7 +246,9 @@ that brand.
     { "platform": "web", "brand": "kitewell" },
     { "platform": "email", "brand": "kitewell" },
     { "platform": "youtube", "handle": "kitewell", "brand": "kitewell" },
-    { "platform": "instagram", "handle": "kitewell", "brand": "kitewell" }
+    { "platform": "instagram", "handle": "kitewell", "brand": "kitewell" },
+    { "platform": "profile", "brand": "kitewell" },
+    { "platform": "profile", "brand": "kitewell-workshop" }
   ]
 }
 ```

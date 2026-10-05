@@ -26,6 +26,7 @@
   "discord": {
     "label": "Discord", "how": "In Server Settings. You sign in.",
     "items": [
+      { "id": "profile", "what": "{at} profile picture", "file": "{handle}-profile-1024.png", "svg": "avatar", "width": 1024, "note": "1024 x 1024, shown as a circle. For an account or a bot" },
       { "id": "icon", "what": "Server icon", "file": "{handle}-icon-512.png", "svg": "avatar", "width": 512, "note": "512 x 512, shown as a circle" },
       { "id": "banner", "what": "Server banner", "file": "{handle}-banner-960x540.png", "banner": [960, 540], "lock": 360, "note": "960 x 540. Only boosted servers can show one" }
     ]
@@ -65,6 +66,23 @@
     "items": [
       { "id": "avatar", "what": "Organisation picture", "file": "{handle}-avatar-500.png", "svg": "avatar", "width": 500, "note": "500 x 500" },
       { "id": "social", "what": "Repository social preview", "file": "{handle}-social-1280x640.png", "banner": [1280, 640], "lock": 500, "note": "1280 x 640, shown when a link to the repository is shared" }
+    ]
+  },
+  "profile": {
+    "label": "Anywhere else", "how": "Profile pictures for any place that is not on this list. Nothing to swap: take one when it is needed. Each is also there as an SVG.",
+    "items": [
+      { "id": "dark", "what": "{brand}: square, on dark", "file": "{id}-on-dark-1024.png", "svg": "avatar-dark", "width": 1024, "note": "1024 x 1024. The one to upload: the place cuts its own circle" },
+      { "id": "light", "what": "{brand}: square, on light", "file": "{id}-on-light-1024.png", "svg": "avatar-light", "width": 1024, "note": "1024 x 1024, for a place with a light look" },
+      { "id": "round-dark", "what": "{brand}: round, on dark", "file": "{id}-round-on-dark-1024.png", "svg": "avatar-dark", "round": true, "width": 1024, "note": "Already cut to a circle, with nothing outside it: for a website, a signature, an overlay" },
+      { "id": "round-light", "what": "{brand}: round, on light", "file": "{id}-round-on-light-1024.png", "svg": "avatar-light", "round": true, "width": 1024, "note": "The same on light" },
+      { "id": "clear-dark", "what": "{brand}: nothing behind it, for dark surfaces", "file": "{id}-clear-for-dark-1024.png", "svg": "clear-dark", "width": 1024, "note": "The mark where it sits in the profile picture, with no background: for where you choose what is behind it" },
+      { "id": "clear-light", "what": "{brand}: nothing behind it, for light surfaces", "file": "{id}-clear-for-light-1024.png", "svg": "clear-light", "width": 1024, "note": "The same for a light surface" },
+      { "id": "dark-svg", "file": "{id}-on-dark.svg", "copy": "avatar-dark", "quiet": true },
+      { "id": "light-svg", "file": "{id}-on-light.svg", "copy": "avatar-light", "quiet": true },
+      { "id": "round-dark-svg", "file": "{id}-round-on-dark.svg", "copy": "avatar-dark", "round": true, "quiet": true },
+      { "id": "round-light-svg", "file": "{id}-round-on-light.svg", "copy": "avatar-light", "round": true, "quiet": true },
+      { "id": "clear-dark-svg", "file": "{id}-clear-for-dark.svg", "copy": "clear-dark", "quiet": true },
+      { "id": "clear-light-svg", "file": "{id}-clear-for-light.svg", "copy": "clear-light", "quiet": true }
     ]
   },
   "web": {
