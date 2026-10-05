@@ -1,0 +1,121 @@
+{
+  "comment": "What each place asks for. A brand's settings list the places it is seen (\"rollout\"), and the rollout step makes these files for each one. Sizes are the ones in common use when this was written: check each in the platform's own upload dialog. A brand can add places of its own, or change one, under \"platforms\" in brand.json. In a file name and in the words, {handle} is the account's handle, {at} is the handle with an @ before it and {brand} is the brand's name. An item is one of: \"svg\" (a logo file drawn at a width), \"banner\" (the lockup in the middle of the mark's outline, at most \"lock\" pixels wide), \"picture\" (logo files placed on a surface), \"text\" (a file written as text) or \"ico\" (pictures gathered into one .ico file).",
+  "youtube": {
+    "label": "YouTube", "how": "In YouTube Studio, under Customisation. You sign in.",
+    "items": [
+      { "id": "profile", "what": "{at} profile picture", "file": "{handle}-profile-800.png", "svg": "avatar", "width": 800, "note": "800 x 800, shown as a circle" },
+      { "id": "banner", "what": "{at} banner", "file": "{handle}-banner-2560x1440.png", "banner": [2560, 1440], "lock": 1000, "safe": [1546, 423], "note": "2560 x 1440. The lockup sits in the middle 1546 x 423, the part every screen shows" },
+      { "id": "watermark", "what": "Video watermark", "file": "watermark-150.png", "once": true, "picture": [150, 150], "bg": null, "place": [["mark-white", 146]], "note": "150 x 150, the flat white mark with nothing behind it" }
+    ]
+  },
+  "tiktok": {
+    "label": "TikTok", "how": "In the app, under Edit profile. You sign in.",
+    "items": [{ "id": "profile", "what": "{at} profile photo", "file": "{handle}-profile-1024.png", "svg": "avatar", "width": 1024, "note": "1024 x 1024, shown as a circle" }]
+  },
+  "instagram": {
+    "label": "Instagram", "how": "In the app, under Edit profile. You sign in.",
+    "items": [{ "id": "profile", "what": "{at} profile photo", "file": "{handle}-profile-1080.png", "svg": "avatar", "width": 1080, "note": "1080 x 1080, shown as a circle" }]
+  },
+  "facebook": {
+    "label": "Facebook", "how": "On the page, under Edit. You sign in.",
+    "items": [
+      { "id": "profile", "what": "Page profile picture", "file": "{handle}-profile-1024.png", "svg": "avatar", "width": 1024, "note": "1024 x 1024, shown as a circle" },
+      { "id": "cover", "what": "Page cover", "file": "{handle}-cover-1640x720.png", "banner": [1640, 720], "lock": 620, "note": "1640 x 720. Phones crop the sides, computers the top and bottom" }
+    ]
+  },
+  "discord": {
+    "label": "Discord", "how": "In Server Settings. You sign in.",
+    "items": [
+      { "id": "icon", "what": "Server icon", "file": "{handle}-icon-512.png", "svg": "avatar", "width": 512, "note": "512 x 512, shown as a circle" },
+      { "id": "banner", "what": "Server banner", "file": "{handle}-banner-960x540.png", "banner": [960, 540], "lock": 360, "note": "960 x 540. Only boosted servers can show one" }
+    ]
+  },
+  "telegram": {
+    "label": "Telegram", "how": "In the app, under Edit. You sign in.",
+    "items": [{ "id": "profile", "what": "{at} photo", "file": "{handle}-profile-1024.png", "svg": "avatar", "width": 1024, "note": "1024 x 1024, shown as a circle" }]
+  },
+  "whatsapp": {
+    "label": "WhatsApp", "how": "In the app, under Settings. You sign in.",
+    "items": [{ "id": "profile", "what": "Profile photo", "file": "{handle}-profile-640.png", "svg": "avatar", "width": 640, "note": "640 x 640, shown as a circle" }]
+  },
+  "twitch": {
+    "label": "Twitch", "how": "In the Creator Dashboard, under Settings, Channel. You sign in.",
+    "items": [
+      { "id": "profile", "what": "{handle} profile picture", "file": "{handle}-profile-800.png", "svg": "avatar", "width": 800, "note": "800 x 800" },
+      { "id": "banner", "what": "Profile banner", "file": "{handle}-banner-1200x480.png", "banner": [1200, 480], "lock": 440, "note": "1200 x 480, the strip across the channel page" },
+      { "id": "offline", "what": "Offline picture", "file": "{handle}-offline-1920x1080.png", "banner": [1920, 1080], "lock": 740, "note": "1920 x 1080, shown in the player while the channel is offline" }
+    ]
+  },
+  "x": {
+    "label": "X", "how": "Under Edit profile. You sign in.",
+    "items": [
+      { "id": "profile", "what": "{at} profile picture", "file": "{handle}-profile-400.png", "svg": "avatar", "width": 400, "note": "400 x 400, shown as a circle" },
+      { "id": "header", "what": "{at} header", "file": "{handle}-header-1500x500.png", "banner": [1500, 500], "lock": 520, "note": "1500 x 500. The profile picture covers the lower left corner" }
+    ]
+  },
+  "linkedin": {
+    "label": "LinkedIn", "how": "On the company page, under Edit page. You sign in.",
+    "items": [
+      { "id": "logo", "what": "Page logo", "file": "{handle}-logo-400.png", "svg": "avatar", "width": 400, "note": "400 x 400, shown as a square" },
+      { "id": "cover", "what": "Page cover", "file": "{handle}-cover-2256x382.png", "banner": [2256, 382], "lock": 600, "note": "2256 x 382, twice the size the page asks for" }
+    ]
+  },
+  "github": {
+    "label": "GitHub", "how": "In the organisation's or the repository's settings. You sign in.",
+    "items": [
+      { "id": "avatar", "what": "Organisation picture", "file": "{handle}-avatar-500.png", "svg": "avatar", "width": 500, "note": "500 x 500" },
+      { "id": "social", "what": "Repository social preview", "file": "{handle}-social-1280x640.png", "banner": [1280, 640], "lock": 500, "note": "1280 x 640, shown when a link to the repository is shared" }
+    ]
+  },
+  "web": {
+    "label": "Website", "how": "Into the site's own files, then published.",
+    "items": [
+      { "id": "favicon-16", "file": "favicon-16x16.png", "picture": [16, 16], "bg": null, "place": [["favicon", 16]], "quiet": true },
+      { "id": "favicon-32", "what": "Tab icon", "file": "favicon-32x32.png", "picture": [32, 32], "bg": null, "place": [["favicon", 32]], "note": "32 x 32, with 16 and 48 beside it and all three in favicon.ico" },
+      { "id": "favicon-48", "file": "favicon-48x48.png", "picture": [48, 48], "bg": null, "place": [["favicon", 48]], "quiet": true },
+      { "id": "favicon-ico", "file": "favicon.ico", "ico": ["favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png"], "quiet": true },
+      { "id": "touch", "what": "Home screen icon", "file": "apple-touch-icon.png", "svg": "avatar", "width": 180, "note": "180 x 180. The phone rounds its corners itself" },
+      { "id": "icon-192", "file": "icon-192.png", "svg": "avatar", "width": 192, "quiet": true },
+      { "id": "icon-512", "what": "App icon for the web", "file": "icon-512.png", "svg": "avatar", "width": 512, "note": "512 x 512, with 192 beside it, for the site's manifest" },
+      { "id": "share", "what": "Picture shown when a link is shared", "file": "share-1200x630.png", "banner": [1200, 630], "lock": 470, "note": "1200 x 630, named in the page's og:image tag" }
+    ]
+  },
+  "email": {
+    "label": "Email", "how": "Into the mail tool's template, and the sender logo onto the site.",
+    "items": [
+      { "id": "logo", "what": "Logo for the template's logo slot", "file": "email-logo-600.png", "picture": [600, 150], "bg": "white", "place": [["lockup-light", 520]], "note": "600 x 150, on white: a logo with nothing behind it vanishes when a mail app turns the email dark" },
+      { "id": "header", "what": "Header strip", "file": "email-header-1200x240.png", "picture": [1200, 240], "bg": "white", "place": [["lockup-light", 560]], "note": "1200 x 240, on white" },
+      { "id": "sender", "what": "Sender logo", "file": "sender-logo.svg", "text": "sender", "note": "The logo some mail apps show beside the sender, in the SVG profile they ask for. It shows only where the domain is set up for it" },
+      { "id": "sender-png", "file": "sender-logo-480.png", "picture": [480, 480], "bg": "surface", "place": [["mark-flat", "62%"]], "quiet": true }
+    ]
+  },
+  "shopify": {
+    "label": "Shopify store", "how": "Through the store admin and its theme. You sign in.",
+    "items": [
+      { "id": "header-dark", "what": "Header logo on a dark theme", "file": "header-logo-on-dark-800.png", "svg": "lockup-dark", "width": 800, "note": "800 px wide, nothing behind it" },
+      { "id": "header-light", "what": "Header logo for light surfaces", "file": "header-logo-on-light-800.png", "svg": "lockup-light", "width": 800, "note": "800 px wide, nothing behind it" },
+      { "id": "square", "what": "Square logo", "file": "square-logo-512.png", "svg": "avatar", "width": 512, "note": "512 x 512" },
+      { "id": "favicon", "what": "Favicon", "file": "favicon-32.png", "svg": "favicon", "width": 32, "note": "32 x 32, with favicon-180.png for touch icons" },
+      { "id": "favicon-180", "file": "favicon-180.png", "svg": "favicon", "width": 180, "quiet": true },
+      { "id": "email-logo", "what": "Email logo", "file": "email-logo-600.png", "picture": [600, 150], "bg": "white", "place": [["lockup-light", 520]], "note": "600 px wide, on white, for the logo slot of order and shipping emails" },
+      { "id": "email-header", "what": "Email header", "file": "email-header-1200x240.png", "picture": [1200, 240], "bg": "white", "place": [["lockup-light", 560]], "note": "1200 x 240, on white" }
+    ]
+  },
+  "app": {
+    "label": "App stores", "how": "Into the app's project and its store listings.",
+    "items": [
+      { "id": "icon", "what": "App icon", "file": "app-icon-1024.png", "svg": "avatar", "width": 1024, "note": "1024 x 1024, and 512 for the store listing. The stores round its corners themselves" },
+      { "id": "icon-512", "file": "app-icon-512.png", "svg": "avatar", "width": 512, "quiet": true },
+      { "id": "adaptive-back", "file": "adaptive-icon-background-432.png", "picture": [432, 432], "bg": "surface", "place": [], "quiet": true },
+      { "id": "adaptive-front", "what": "Android icon layers", "file": "adaptive-icon-foreground-432.png", "picture": [432, 432], "bg": null, "place": [["mark", 262]], "note": "432 x 432, front and back. Android crops them to its own shape, so the mark stays inside the middle two thirds" },
+      { "id": "feature", "what": "Store feature graphic", "file": "feature-graphic-1024x500.png", "banner": [1024, 500], "lock": 400, "note": "1024 x 500" }
+    ]
+  },
+  "video": {
+    "label": "Video editing", "how": "Into the editing project's own files.",
+    "items": [
+      { "id": "white", "what": "The mark for inside videos, white", "file": "logo-white.png", "svg": "tight-white", "width": 1600, "note": "1600 px wide, cut to the mark's edges, nothing behind it" },
+      { "id": "black", "what": "The mark for inside videos, black", "file": "logo-black.png", "svg": "tight-black", "width": 1600, "note": "The same in black" }
+    ]
+  }
+}

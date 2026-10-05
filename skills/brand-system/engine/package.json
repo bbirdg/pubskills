@@ -1,0 +1,14 @@
+{
+  "name": "brand-system-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The engine behind the brand-system skill: it draws a brand's logo files, colours, fonts, background art, animated logos, upload kit and design system page from one settings file. Run it through run.js, which keeps its libraries outside this folder: `node run.js setup` once, then `node run.js <step> <brand folder>`.",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "opentype.js": "2.0.0",
+    "paper": "0.12.18",
+    "paperjs-offset": "2.2.1",
+    "playwright": "1.63.0"
+  }
+}

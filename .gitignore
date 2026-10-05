@@ -1,0 +1,11 @@
+# what the engine installs and makes
+node_modules/
+__pycache__/
+*.pyc
+.build/
+/skills/brand-system/example/final/
+/skills/brand-system/example/options/
+# operating system noise
+.DS_Store
+Thumbs.db
+desktop.ini
